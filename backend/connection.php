@@ -1,5 +1,5 @@
 <?php
-$env = @parse_ini_file(__DIR__ . '/.env', false, INI_SCANNER_RAW);
+$env = @parse_ini_file(dirname(__DIR__) . '/.env', false, INI_SCANNER_RAW);
 if ($env === false) {
     http_response_code(500);
     exit('Falta el archivo .env (copia .env.example)');

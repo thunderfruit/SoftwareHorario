@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict FbuyNU6oJqvDvCJpCRjR3MTuC0gxueZ8u2GzgBOcqScSZDS9hZ5yJBVNL9iE3Um
+\restrict jU05A3qZBN4rMgmfvdiUZ6pQlKfdmSVcKx75xeYLnPQtjVxDTDmw1R8pwp14LyC
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -149,7 +149,8 @@ ALTER SEQUENCE public.categoria_salon_categoria_salon_id_seq OWNED BY public.cat
 
 CREATE TABLE public.curso (
     curso_id integer NOT NULL,
-    nombre character varying(150) NOT NULL
+    nombre character varying(150) NOT NULL,
+    departamento_id integer NOT NULL
 );
 
 
@@ -179,7 +180,8 @@ ALTER SEQUENCE public.curso_curso_id_seq OWNED BY public.curso.curso_id;
 
 CREATE TABLE public.departamento (
     departamento_id integer NOT NULL,
-    nombre character varying(150) NOT NULL
+    nombre character varying(150) NOT NULL,
+    facultad_id integer NOT NULL
 );
 
 
@@ -243,12 +245,13 @@ ALTER SEQUENCE public.detalle_curso_detalle_curso_id_seq OWNED BY public.detalle
 
 CREATE TABLE public.docente (
     docente_id integer NOT NULL,
-    escuela_id integer NOT NULL,
-    grado_academico_id integer NOT NULL,
+    grado_academico_id integer,
     nombres character varying(150) NOT NULL,
     apellidos character varying(150) NOT NULL,
-    numero_documento character varying(12) CONSTRAINT docente_dni_not_null NOT NULL,
+    numero_documento character varying(12),
     tipo_documento character varying(3) DEFAULT 'DNI'::character varying NOT NULL,
+    codigo_docente character varying(20) NOT NULL,
+    departamento_id integer,
     CONSTRAINT docente_check CHECK (((((tipo_documento)::text = 'DNI'::text) AND ((numero_documento)::text ~ '^[0-9]{8}$'::text)) OR (((tipo_documento)::text = 'CE'::text) AND ((numero_documento)::text ~ '^[0-9A-Z]{9,12}$'::text)))),
     CONSTRAINT docente_tipo_documento_check CHECK (((tipo_documento)::text = ANY ((ARRAY['DNI'::character varying, 'CE'::character varying])::text[])))
 );
@@ -351,8 +354,8 @@ ALTER SEQUENCE public.docente_docente_id_seq OWNED BY public.docente.docente_id;
 
 CREATE TABLE public.escuela (
     escuela_id integer NOT NULL,
-    departamento_id integer NOT NULL,
-    nombre character varying(150) NOT NULL
+    nombre character varying(150) NOT NULL,
+    facultad_id integer NOT NULL
 );
 
 
@@ -384,6 +387,36 @@ CREATE SEQUENCE public.escuela_escuela_id_seq
 --
 
 ALTER SEQUENCE public.escuela_escuela_id_seq OWNED BY public.escuela.escuela_id;
+
+
+--
+-- Name: facultad; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.facultad (
+    facultad_id integer NOT NULL,
+    nombre character varying(150) NOT NULL
+);
+
+
+--
+-- Name: facultad_facultad_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.facultad_facultad_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: facultad_facultad_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.facultad_facultad_id_seq OWNED BY public.facultad.facultad_id;
 
 
 --
@@ -543,9 +576,7 @@ CREATE VIEW public.plaza_disponibilidad AS
     (p.cantidad_total - count(d.docente_id)) AS cantidad_disponible
    FROM ((public.plaza p
      LEFT JOIN public.docente_categoria_historial h ON (((h.categoria_id = p.categoria_id) AND (h.fecha_fin IS NULL))))
-     LEFT JOIN public.docente d ON (((d.docente_id = h.docente_id) AND (d.escuela_id IN ( SELECT escuela.escuela_id
-           FROM public.escuela
-          WHERE (escuela.departamento_id = p.departamento_id))))))
+     LEFT JOIN public.docente d ON (((d.docente_id = h.docente_id) AND (d.departamento_id = p.departamento_id))))
   GROUP BY p.plaza_id, p.categoria_id, p.departamento_id, p.cantidad_total;
 
 
@@ -698,6 +729,13 @@ ALTER TABLE ONLY public.escuela ALTER COLUMN escuela_id SET DEFAULT nextval('pub
 
 
 --
+-- Name: facultad facultad_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.facultad ALTER COLUMN facultad_id SET DEFAULT nextval('public.facultad_facultad_id_seq'::regclass);
+
+
+--
 -- Name: grado_academico grado_academico_id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -779,6 +817,14 @@ ALTER TABLE ONLY public.curso
 
 
 --
+-- Name: departamento departamento_facultad_id_nombre_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.departamento
+    ADD CONSTRAINT departamento_facultad_id_nombre_key UNIQUE (facultad_id, nombre);
+
+
+--
 -- Name: departamento departamento_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -827,6 +873,14 @@ ALTER TABLE ONLY public.docente_categoria_historial
 
 
 --
+-- Name: docente docente_codigo_docente_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.docente
+    ADD CONSTRAINT docente_codigo_docente_key UNIQUE (codigo_docente);
+
+
+--
 -- Name: docente docente_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -851,11 +905,35 @@ ALTER TABLE ONLY public.escuela_curso
 
 
 --
+-- Name: escuela escuela_facultad_id_nombre_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escuela
+    ADD CONSTRAINT escuela_facultad_id_nombre_key UNIQUE (facultad_id, nombre);
+
+
+--
 -- Name: escuela escuela_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.escuela
     ADD CONSTRAINT escuela_pkey PRIMARY KEY (escuela_id);
+
+
+--
+-- Name: facultad facultad_nombre_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.facultad
+    ADD CONSTRAINT facultad_nombre_key UNIQUE (nombre);
+
+
+--
+-- Name: facultad facultad_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.facultad
+    ADD CONSTRAINT facultad_pkey PRIMARY KEY (facultad_id);
 
 
 --
@@ -1027,6 +1105,22 @@ ALTER TABLE ONLY public.categoria
 
 
 --
+-- Name: curso curso_departamento_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.curso
+    ADD CONSTRAINT curso_departamento_id_fkey FOREIGN KEY (departamento_id) REFERENCES public.departamento(departamento_id);
+
+
+--
+-- Name: departamento departamento_facultad_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.departamento
+    ADD CONSTRAINT departamento_facultad_id_fkey FOREIGN KEY (facultad_id) REFERENCES public.facultad(facultad_id);
+
+
+--
 -- Name: detalle_curso detalle_curso_curso_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1099,11 +1193,11 @@ ALTER TABLE ONLY public.docente_categoria_historial
 
 
 --
--- Name: docente docente_escuela_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: docente docente_departamento_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.docente
-    ADD CONSTRAINT docente_escuela_id_fkey FOREIGN KEY (escuela_id) REFERENCES public.escuela(escuela_id);
+    ADD CONSTRAINT docente_departamento_id_fkey FOREIGN KEY (departamento_id) REFERENCES public.departamento(departamento_id);
 
 
 --
@@ -1131,11 +1225,11 @@ ALTER TABLE ONLY public.escuela_curso
 
 
 --
--- Name: escuela escuela_departamento_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: escuela escuela_facultad_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.escuela
-    ADD CONSTRAINT escuela_departamento_id_fkey FOREIGN KEY (departamento_id) REFERENCES public.departamento(departamento_id);
+    ADD CONSTRAINT escuela_facultad_id_fkey FOREIGN KEY (facultad_id) REFERENCES public.facultad(facultad_id);
 
 
 --
@@ -1198,5 +1292,5 @@ ALTER TABLE ONLY public.salon
 -- PostgreSQL database dump complete
 --
 
-\unrestrict FbuyNU6oJqvDvCJpCRjR3MTuC0gxueZ8u2GzgBOcqScSZDS9hZ5yJBVNL9iE3Um
+\unrestrict jU05A3qZBN4rMgmfvdiUZ6pQlKfdmSVcKx75xeYLnPQtjVxDTDmw1R8pwp14LyC
 
