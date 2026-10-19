@@ -18,7 +18,7 @@ $conflicts = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
     if (($_POST['action'] ?? '') === 'delete') {
-        deleteBlock($pdo, intParam($_POST, 'block') ?? 0);
+        deleteBlock($pdo, $sectionId, intParam($_POST, 'block') ?? 0);
         flash('ok', 'Bloque eliminado.');
         redirect($self);
     }
@@ -159,7 +159,7 @@ pageHeader($section['codigo'] . ' · ' . $section['curso'] . ' · Sección ' . $
                 <td><?= e($block['docente']) ?></td>
                 <td><?= e($block['salon']) ?></td>
                 <td>
-                    <form method="post" class="inline">
+                    <form method="post" class="inline" onsubmit="return confirm('¿Quitar este bloque del horario?')">
                         <?= csrfField() ?>
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="block" value="<?= (int) $block['horario_detalle_id'] ?>">

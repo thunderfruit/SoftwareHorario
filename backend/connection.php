@@ -1,4 +1,8 @@
 <?php
+// errors go to the server log, never to the page (XAMPP shows them by default)
+if (PHP_SAPI !== 'cli') {
+    ini_set('display_errors', '0');
+}
 $env = @parse_ini_file(dirname(__DIR__) . '/.env', false, INI_SCANNER_RAW);
 if ($env === false) {
     http_response_code(500);
@@ -12,7 +16,8 @@ try {
     ]);
 } catch (PDOException $e) {
     http_response_code(500);
-    exit('Error de conexión: ' . $e->getMessage());
+    error_log($e->getMessage());
+    exit('No se pudo conectar a la base de datos.');
 }
 
 // Prueba rápida: php connection.php

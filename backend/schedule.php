@@ -1,7 +1,12 @@
 <?php
 require_once __DIR__ . '/connection.php';
 
-const DAYS = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
+// stored day name => label shown on screen
+const DAY_LABELS = [
+    'Lunes' => 'Lunes', 'Martes' => 'Martes', 'Miercoles' => 'Miércoles',
+    'Jueves' => 'Jueves', 'Viernes' => 'Viernes', 'Sabado' => 'Sábado',
+];
+define('DAYS', array_keys(DAY_LABELS));
 const SESSION_TYPES = ['Teoría', 'Práctica', 'Laboratorio'];
 const FIRST_HOUR = 7;
 const LAST_HOUR = 22;
@@ -196,7 +201,8 @@ function addBlock(PDO $pdo, array $block): array
     }
 }
 
-function deleteBlock(PDO $pdo, int $blockId): void
+function deleteBlock(PDO $pdo, int $sectionId, int $blockId): void
 {
-    $pdo->prepare('DELETE FROM public.horario_detalle WHERE horario_detalle_id = ?')->execute([$blockId]);
+    $pdo->prepare('DELETE FROM public.horario_detalle WHERE seccion_id = ? AND horario_detalle_id = ?')
+        ->execute([$sectionId, $blockId]);
 }

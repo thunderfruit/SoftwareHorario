@@ -16,9 +16,22 @@ function check(bool $condition, string $message): void
 $period = currentPeriod($pdo);
 $school = $pdo->query("SELECT escuela_id FROM escuela WHERE nombre = 'Informática'")->fetchColumn();
 $course = fn ($code) => (int) $pdo->query("SELECT curso_id FROM curso WHERE codigo = '$code'")->fetchColumn();
-$created = ['rooms' => [], 'sections' => [], 'teachers' => []];
+$created = ['rooms' => [], 'sections' => [], 'teachers' => [], 'users' => []];
 
 try {
+    $pdo->prepare("INSERT INTO usuario (nombre_usuario, password_hash, rol) VALUES ('test-admin', ?, 'Administrador')")
+        ->execute([password_hash('clave-de-prueba', PASSWORD_DEFAULT)]);
+    $created['users'][] = 'test-admin';
+    // all logins run before any output: session_regenerate_id() refuses to run once output has started
+    $wrongPassword = !login($pdo, 'test-admin', 'otra-clave') && currentUser() === null;
+    $unknownUser = !login($pdo, 'no-existe', 'clave-de-prueba');
+    $rightPassword = login($pdo, 'test-admin', 'clave-de-prueba') && currentUser()['rol'] === 'Administrador'
+        && !isset(currentUser()['password_hash']);
+    logout();
+    check($wrongPassword, 'login rechaza una contraseña incorrecta');
+    check($unknownUser, 'login rechaza un usuario inexistente');
+    check($rightPassword, 'login correcto guarda el rol y no el hash');
+
     // Two teachers created through saveTeacher, which also exercises the category history.
     $teacherData = fn ($code) => [
         'codigo_docente' => $code, 'apellidos' => 'PRUEBA', 'nombres' => $code, 'tipo_documento' => 'DNI',
@@ -78,11 +91,21 @@ try {
     check(substr_count($rows[0], 'TA') === 1 && substr_count($rows[2], 'TB') === 1 && substr_count($rows[2], 'TA') === 0,
         'cada bloque aparece en las horas que cubre');
 
+    $repeatBlock = scheduleBlocks($pdo, ['periodo_id' => $period['periodo_id'], 'seccion_id' => $repeat])[0]['horario_detalle_id'];
+    deleteBlock($pdo, $bdA, $repeatBlock);
+    check(count(scheduleBlocks($pdo, ['periodo_id' => $period['periodo_id'], 'seccion_id' => $repeat])) === 1,
+        'no se borra un bloque desde otra sección');
+    deleteBlock($pdo, $repeat, $repeatBlock);
+    check(!scheduleBlocks($pdo, ['periodo_id' => $period['periodo_id'], 'seccion_id' => $repeat]), 'quitar bloque de su sección');
+
     deleteSection($pdo, $bdB);
     $created['sections'] = array_diff($created['sections'], [$bdB]);
     check(count(scheduleBlocks($pdo, ['periodo_id' => $period['periodo_id'], 'salon_id' => $labA])) === 1, 'borrar sección borra sus bloques');
     echo "Todas las pruebas pasaron.\n";
 } finally {
+    foreach ($created['users'] as $name) {
+        $pdo->prepare('DELETE FROM usuario WHERE nombre_usuario = ?')->execute([$name]);
+    }
     foreach ($created['sections'] as $id) {
         deleteSection($pdo, $id);
     }

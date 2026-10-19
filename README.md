@@ -63,6 +63,30 @@ php tests/schedule_test.php
 
 Usa la base configurada en `.env` y borra al terminar todo lo que crea.
 
+## Pendientes
+
+### Prioridad alta
+- [ ] Validar la carga docente: avisar cuando las horas programadas superan la asignación del periodo.
+- [ ] Respetar el tipo de salón: avisar o impedir un bloque de laboratorio en un aula.
+- [ ] Avance del periodo: cursos del plan sin sección y secciones con horas sin programar.
+- [ ] Choques por ciclo: evitar que dos cursos del mismo ciclo se crucen; para repitencia, solo un aviso.
+
+### Para la presentación
+- [ ] Cupo de la sección comparado con el aforo del salón.
+- [ ] Exportar los horarios a CSV por docente o por ciclo.
+- [ ] Copiar las secciones y bloques de un periodo al siguiente.
+
+### Administración
+- [ ] Página de periodos: crear y cerrar.
+- [ ] Página de usuarios y cambio de contraseña.
+- [ ] Edición del plan de estudios: cursos y prerrequisitos.
+
+### Calidad y entrega
+- [ ] Limitar los intentos fallidos de login.
+- [ ] Pruebas de páginas y permisos.
+- [ ] Probar en el XAMPP del profesor (PHP 8.2).
+- [ ] Diagramas de casos de uso y entidad-relación, y un manual de usuario.
+
 ## Datos pendientes
 
 Los docentes de `seed.sql` (Departamento Académico de Informática) provienen de fuentes no oficiales. Les faltan el grado académico y el documento de identidad, y a los contratados (B1/B2) su dedicación. Revisa los comentarios del archivo antes de usarlos oficialmente. Los salones tienen una capacidad provisional de 40.

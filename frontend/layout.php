@@ -1,11 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/backend/auth.php';
 
-const DAY_LABELS = [
-    'Lunes' => 'Lunes', 'Martes' => 'Martes', 'Miercoles' => 'Miércoles',
-    'Jueves' => 'Jueves', 'Viernes' => 'Viernes', 'Sabado' => 'Sábado',
-];
-
 function e(?string $value, string $empty = '—'): string
 {
     return htmlspecialchars($value ?? $empty, ENT_QUOTES, 'UTF-8');
