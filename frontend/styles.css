@@ -1,5 +1,6 @@
 /* Palette from the UNT corporate identity manual. Gold is only used as a background with dark text (too light as text). */
 :root {
+    color-scheme: light;
     --unt-blue: #12377B;
     --unt-blue-dark: #0C2656;
     --unt-gold: #E6AD09;
@@ -8,15 +9,50 @@
     --unt-gray: #373435;
     --unt-black: #1E1A17;
     --bg: #F5F6FA;
+    --surface: #fff;
+    --surface-alt: #FAFBFD;
+    --row-head: #EEF1F7;
+    --text: var(--unt-gray);
+    --accent-text: var(--unt-blue);
+    --muted: #5A6268;
     --line: #DCDFE8;
+    --input-border: #B9BECB;
+    --error-text: #8C1A10;
+    --shadow: rgba(0,0,0,.08);
+    --teoria-bg: #EAF0FA;
+    --teoria-border: var(--unt-blue);
+    --practica-bg: #E8F5EC;
+    --lab-bg: #FDF5DD;
+}
+
+/* Dark mode follows the system setting; print always stays light. Blue text is lightened for contrast on dark surfaces. */
+@media screen and (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+        --bg: #10141C;
+        --surface: #1A202B;
+        --surface-alt: #1E2531;
+        --row-head: #232B39;
+        --text: #E3E6EC;
+        --accent-text: #8FB0EE;
+        --muted: #A3AAB5;
+        --line: #2E3747;
+        --input-border: #4A5363;
+        --error-text: #FF9B90;
+        --shadow: rgba(0,0,0,.4);
+        --teoria-bg: #1C2B47;
+        --teoria-border: #5C86D6;
+        --practica-bg: #173323;
+        --lab-bg: #3A3015;
+    }
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; font-family: system-ui, "Segoe UI", Arial, sans-serif; background: var(--bg); color: var(--unt-gray); line-height: 1.4; }
+body { margin: 0; font-family: system-ui, "Segoe UI", Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.4; }
 main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 48px; }
-h1 { font-size: 1.6rem; color: var(--unt-blue); margin: 0 0 16px; }
-h2 { font-size: 1.15rem; color: var(--unt-blue); }
-a { color: var(--unt-blue); }
+h1 { font-size: 1.6rem; color: var(--accent-text); margin: 0 0 16px; }
+h2 { font-size: 1.15rem; color: var(--accent-text); }
+a { color: var(--accent-text); }
 
 .topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px;
     background: var(--unt-blue); border-bottom: 4px solid var(--unt-gold); padding: 12px 16px; }
@@ -26,15 +62,15 @@ a { color: var(--unt-blue); }
 .topbar nav a, .topbar nav .link { color: #fff; text-decoration: none; font-size: .95rem; }
 .topbar nav a:hover, .topbar nav .link:hover { text-decoration: underline; }
 
-.card, .filters { background: #fff; padding: 16px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 20px; }
+.card, .filters { background: var(--surface); padding: 16px 20px; border-radius: 8px; box-shadow: 0 1px 3px var(--shadow); margin-bottom: 20px; }
 .narrow { max-width: 380px; display: grid; gap: 12px; }
 .filters, .form-grid { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: end; }
 .form-grid label.wide { flex: 1 1 320px; }
 label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: .9rem; }
 label.checkbox { flex-direction: row; align-items: center; font-weight: 500; }
 fieldset { border: 1px solid var(--line); border-radius: 6px; display: flex; flex-wrap: wrap; gap: 12px 16px; padding: 8px 12px 12px; }
-legend { font-weight: 700; color: var(--unt-blue); padding: 0 4px; }
-input, select { padding: 8px; border: 1px solid #B9BECB; border-radius: 4px; font: inherit; background: #fff; max-width: 100%; }
+legend { font-weight: 700; color: var(--accent-text); padding: 0 4px; }
+input, select { padding: 8px; border: 1px solid var(--input-border); border-radius: 4px; font: inherit; background: var(--surface); color: var(--text); max-width: 100%; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 button, .button { padding: 8px 15px; border: none; border-radius: 4px; background: var(--unt-blue); color: #fff;
@@ -42,7 +78,7 @@ button, .button { padding: 8px 15px; border: none; border-radius: 4px; backgroun
 button:hover, .button:hover { background: var(--unt-blue-dark); }
 .button.secondary { background: #5A6268; }
 .button.accent { background: var(--unt-gold); color: var(--unt-black); }
-button.link { background: none; padding: 0; font-weight: 400; color: var(--unt-blue); text-decoration: underline; }
+button.link { background: none; padding: 0; font-weight: 400; color: var(--accent-text); text-decoration: underline; }
 button.link.danger { color: var(--unt-red); }
 .topbar button.link { color: #fff; text-decoration: none; }
 button:focus-visible, .button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
@@ -50,33 +86,33 @@ button:focus-visible, .button:focus-visible, a:focus-visible, input:focus-visibl
 form.inline { display: inline; }
 .row-actions { white-space: nowrap; display: flex; gap: 12px; }
 
-.flash { padding: 12px 16px; border-radius: 6px; border-left: 5px solid; background: #fff; }
+.flash { padding: 12px 16px; border-radius: 6px; border-left: 5px solid; background: var(--surface); }
 .flash.ok { border-color: var(--unt-green); }
-.flash.error { border-color: var(--unt-red); color: #8C1A10; }
+.flash.error { border-color: var(--unt-red); color: var(--error-text); }
 ul.flash { padding-left: 32px; }
-.hint, .count { color: #5A6268; }
-.empty { text-align: center; color: #6B7079; }
+.hint, .count { color: var(--muted); }
+.empty { text-align: center; color: var(--muted); }
 .tag { background: var(--unt-gold); color: var(--unt-black); font-size: .75rem; font-weight: 700; padding: 1px 6px; border-radius: 3px; }
 
 .hours { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-.hours span { background: #fff; border: 1px solid var(--line); border-left-width: 5px; border-radius: 4px; padding: 6px 10px; }
+.hours span { background: var(--surface); border: 1px solid var(--line); border-left-width: 5px; border-radius: 4px; padding: 6px 10px; }
 .hours .ok { border-left-color: var(--unt-green); }
 .hours .missing { border-left-color: var(--unt-gold); }
 .hours .over { border-left-color: var(--unt-red); }
 
-.table-wrap { overflow-x: auto; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08); border-radius: 8px; margin-bottom: 16px; }
+.table-wrap { overflow-x: auto; background: var(--surface); box-shadow: 0 1px 3px var(--shadow); border-radius: 8px; margin-bottom: 16px; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
 thead th { background: var(--unt-blue); color: #fff; white-space: nowrap; }
-tbody tr:nth-child(even) { background: #FAFBFD; }
+tbody tr:nth-child(even) { background: var(--surface-alt); }
 
 table.grid { table-layout: fixed; min-width: 760px; }
-table.grid th[scope="row"] { width: 110px; white-space: nowrap; font-size: .85rem; background: #EEF1F7; }
+table.grid th[scope="row"] { width: 110px; white-space: nowrap; font-size: .85rem; background: var(--row-head); }
 table.grid td { padding: 4px; height: 52px; }
-.block { font-size: .78rem; line-height: 1.25; padding: 4px 6px; border-radius: 4px; margin-bottom: 4px; border-left: 4px solid; background: #EAF0FA; }
-.block.teoria { border-color: var(--unt-blue); }
-.block.practica { border-color: var(--unt-green); background: #E8F5EC; }
-.block.laboratorio { border-color: var(--unt-gold); background: #FDF5DD; }
+.block { font-size: .78rem; line-height: 1.25; padding: 4px 6px; border-radius: 4px; margin-bottom: 4px; border-left: 4px solid; background: var(--teoria-bg); }
+.block.teoria { border-color: var(--teoria-border); }
+.block.practica { border-color: var(--unt-green); background: var(--practica-bg); }
+.block.laboratorio { border-color: var(--unt-gold); background: var(--lab-bg); }
 .block.continues { opacity: .85; }
 
 @media print {
