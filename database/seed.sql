@@ -142,6 +142,17 @@ INSERT INTO public.categoria_salon (nombre) VALUES ('Aula'), ('Laboratorio'), ('
 
 INSERT INTO public.periodo (nombre, fecha_inicio, fecha_fin) VALUES ('2026-II', '2026-08-24', '2026-12-19');
 
+-- Salones que usa Informática. INFO y POOL se asumen aulas, LAB laboratorios.
+-- shortcut: capacidad 40 es un valor provisional; reemplazar por el aforo real de cada salón.
+INSERT INTO public.salon (categoria_salon_id, escuela_id, nombre, capacidad, sede_id)
+SELECT cs.categoria_salon_id, e.escuela_id, s.nombre, 40, se.sede_id
+FROM (VALUES ('INFO 2', 'Aula'), ('INFO 3', 'Aula'), ('INFO 5', 'Aula'),
+             ('LAB A', 'Laboratorio'), ('LAB B', 'Laboratorio'), ('LAB C', 'Laboratorio'),
+             ('POOL 17', 'Aula'), ('POOL 18', 'Aula')) AS s(nombre, categoria)
+JOIN public.categoria_salon cs ON cs.nombre = s.categoria
+JOIN public.escuela e ON e.nombre = 'Informática'
+JOIN public.sede se ON se.nombre = 'Trujillo';
+
 -- Principal exige doctorado; el resto, maestría.
 INSERT INTO public.categoria (grado_minimo_id, nombre)
 SELECT g.grado_academico_id, c.nombre
@@ -210,5 +221,112 @@ JOIN dedicacion ded ON ded.codigo = t.dedicacion
 JOIN public.modalidad m ON m.nombre = ded.modalidad
 JOIN public.categoria c ON c.nombre = t.categoria
 JOIN public.periodo p ON p.nombre = '2026-II';
+
+-- Plan de estudios de la Escuela de Informática (sección 12 del currículo).
+-- Horas T/P/L verificadas por columna contra el PDF oficial del plan 2018 (enlazado en https://inf.unitru.edu.pe/curriculos).
+-- departamento NULL: "Lengua y literatura" no figura entre los departamentos del estatuto.
+WITH plan (ciclo, codigo, nombre, tipo, ht, hp, hl, creditos, departamento) AS (VALUES
+    (1,  '13024', 'Desarrollo personal',                                 'EG', 2, 2, 0, 3,  'Ciencias Psicológicas'),
+    (1,  '13029', 'Lectura crítica y redacción de textos académicos',    'EG', 2, 2, 0, 3,  NULL),
+    (1,  '13027', 'Física general',                                      'EG', 2, 4, 0, 4,  'Física'),
+    (1,  '13021', 'Algoritmos y programación',                           'ES', 2, 2, 2, 4,  'Informática'),
+    (1,  '13023', 'Desarrollo del pensamiento lógico matemático',        'EG', 1, 4, 0, 3,  'Matemáticas'),
+    (1,  '13028', 'Introducción al análisis matemático',                 'EG', 2, 4, 0, 4,  'Matemáticas'),
+    (1,  '13031', 'Taller de liderazgo y trabajo en equipo',             'EG', 0, 2, 0, 1,  'Ciencias Sociales'),
+    (2,  '13040', 'Ética, convivencia humana y ciudadanía',              'EG', 2, 2, 0, 3,  'Ciencias Sociales'),
+    (2,  '13043', 'Sociedad, cultura y ecología',                        'EG', 1, 4, 0, 3,  'Ciencias Sociales'),
+    (2,  '13036', 'Cultura investigativa y pensamiento crítico',         'EG', 2, 2, 0, 3,  'Ciencias Sociales'),
+    (2,  '13039', 'Estructura de datos',                                 'ES', 2, 2, 2, 4,  'Informática'),
+    (2,  '13038', 'Estadística general',                                 'EG', 2, 4, 0, 4,  'Estadística'),
+    (2,  '13034', 'Análisis matemático',                                 'EG', 2, 4, 0, 4,  'Matemáticas'),
+    (2,  '13046', 'Taller de manejo de TIC',                             'EG', 0, 2, 0, 1,  'Informática'),
+    (3,  '13629', 'Geometría analítica',                                 'EE', 2, 4, 0, 4,  'Matemáticas'),
+    (3,  '13630', 'Paradigmas de lenguajes de programación',             'ES', 2, 2, 2, 4,  'Informática'),
+    (3,  '13631', 'Estrategias algorítmicas',                            'ES', 2, 2, 2, 4,  'Informática'),
+    (3,  '13632', 'Matemática discreta',                                 'EE', 2, 4, 0, 4,  'Matemáticas'),
+    (3,  '13633', 'Física para ciencia de la computación',               'EE', 2, 0, 2, 3,  'Física'),
+    (3,  '13634', 'Análisis numérico',                                   'EE', 2, 0, 2, 3,  'Matemáticas'),
+    (4,  '13635', 'Computación gráfica',                                 'ES', 2, 2, 2, 4,  'Informática'),
+    (4,  '13636', 'Organización de archivos',                            'ES', 2, 0, 2, 3,  'Informática'),
+    (4,  '13637', 'Algoritmos y complejidad',                            'ES', 2, 2, 2, 4,  'Informática'),
+    (4,  '13638', 'Lenguajes formales y autómatas',                      'ES', 2, 2, 2, 4,  'Informática'),
+    (4,  '13639', 'Electrónica para computación',                        'ES', 2, 2, 2, 4,  'Informática'),
+    (4,  '13640', 'Innovación y emprendimiento',                         'ES', 2, 2, 0, 3,  'Informática'),
+    (5,  '13641', 'Base de datos I',                                     'ES', 2, 2, 2, 4,  'Informática'),
+    (5,  '13642', 'Ingeniería de software I',                            'ES', 2, 2, 2, 4,  'Informática'),
+    (5,  '13643', 'Inteligencia artificial I',                           'ES', 2, 2, 2, 4,  'Informática'),
+    (5,  '13644', 'Compiladores',                                        'ES', 2, 2, 2, 4,  'Informática'),
+    (5,  '13645', 'Técnicas digitales para computación',                 'ES', 2, 2, 2, 4,  'Informática'),
+    (5,  '13646', 'Metodología de la investigación científica',          'ES', 2, 0, 0, 2,  'Informática'),
+    (6,  '14068', 'Computación gráfica avanzada',                        'ES', 2, 2, 2, 4,  'Informática'),
+    (6,  '14069', 'Base de datos II',                                    'ES', 2, 2, 2, 4,  'Informática'),
+    (6,  '14070', 'Ingeniería de software II',                           'ES', 2, 2, 2, 4,  'Informática'),
+    (6,  '14071', 'Inteligencia artificial II',                          'ES', 0, 2, 2, 2,  'Informática'),
+    (6,  '14072', 'Comunicación de datos',                               'ES', 2, 2, 2, 4,  'Informática'),
+    (6,  '14073', 'Arquitectura y organización de computadoras',         'ES', 2, 2, 2, 4,  'Informática'),
+    (7,  '14074', 'Base de datos avanzada',                              'ES', 2, 2, 2, 4,  'Informática'),
+    (7,  '14075', 'Desarrollo de software',                              'ES', 2, 2, 2, 4,  'Informática'),
+    (7,  '14076', 'Percepción y visión por computadora',                 'ES', 2, 2, 2, 4,  'Informática'),
+    (7,  '14077', 'Redes de computadoras I',                             'ES', 2, 2, 2, 4,  'Informática'),
+    (7,  '14078', 'Sistemas operativos I',                               'ES', 2, 2, 2, 4,  'Informática'),
+    (7,  '14079', 'Gestión de proyectos informáticos',                   'ES', 0, 2, 2, 2,  'Informática'),
+    (8,  '14080', 'Robótica',                                            'ES', 2, 2, 2, 4,  'Informática'),
+    (8,  '14081', 'Redes de computadoras II',                            'ES', 2, 2, 2, 4,  'Informática'),
+    (8,  '14082', 'Sistemas operativos II',                              'ES', 2, 2, 2, 4,  'Informática'),
+    (8,  '14083', 'Prácticas preprofesionales',                          'ES', 1, 9, 9, 10, 'Informática'),
+    (9,  '14084', 'Interacción humano-computador',                       'ES', 2, 2, 2, 4,  'Informática'),
+    (9,  '14085', 'Tópicos en base de datos',                            'ES', 2, 2, 2, 4,  'Informática'),
+    (9,  'INF34', 'Tópicos en ingeniería de software',                   'ES', 2, 2, 2, 4,  'Informática'),
+    (9,  '14087', 'Ingeniería de software avanzada',                     'ES', 2, 2, 2, 4,  'Informática'),
+    (9,  '14088', 'Seguridad informática',                               'ES', 2, 2, 2, 4,  'Informática'),
+    (9,  '14089', 'Proyecto de tesis',                                   'ES', 1, 2, 0, 2,  'Informática'),
+    (10, '14090', 'Tópicos en tecnologías inmersivas',                   'ES', 2, 2, 2, 4,  'Informática'),
+    (10, '14091', 'Sistemas de información',                             'ES', 2, 0, 2, 3,  'Informática'),
+    (10, '14092', 'Ética para profesionales en informática',             'ES', 2, 2, 0, 3,  'Informática'),
+    (10, '14093', 'Proyecto de competencia',                             'ES', 0, 2, 2, 2,  'Informática'),
+    (10, '14094', 'Proyecto integrador',                                 'ES', 2, 4, 0, 4,  'Informática'),
+    (10, 'INF43', 'Tesis',                                               'ES', 0, 2, 0, 1,  'Informática')
+),
+cursos AS (
+    INSERT INTO public.curso (codigo, nombre, tipo, horas_teoria, horas_practica, horas_laboratorio, creditos, departamento_id)
+    SELECT plan.codigo, plan.nombre, plan.tipo, plan.ht, plan.hp, plan.hl, plan.creditos, d.departamento_id
+    FROM plan
+    LEFT JOIN public.departamento d ON d.nombre = plan.departamento
+    RETURNING curso_id, codigo
+)
+INSERT INTO public.escuela_curso (escuela_id, curso_id, ciclo)
+SELECT e.escuela_id, c.curso_id, plan.ciclo
+FROM cursos c
+JOIN plan ON plan.codigo = c.codigo
+JOIN public.escuela e ON e.nombre = 'Informática';
+
+-- Requisitos que no son cursos quedan fuera: 14083 (haber aprobado hasta el ciclo VI),
+-- 14089 (176 créditos aprobados), 14093 (cursos del área de la competencia elegida).
+INSERT INTO public.curso_prerrequisito (curso_id, prerrequisito_id)
+SELECT c.curso_id, p.curso_id
+FROM (VALUES
+    ('13039', '13021'), ('13034', '13028'),
+    ('13629', '13034'), ('13631', '13039'), ('13633', '13027'), ('13634', '13034'),
+    ('13635', '13629'), ('13635', '13039'), ('13636', '13039'), ('13637', '13631'), ('13637', '13632'),
+    ('13638', '13632'), ('13639', '13633'),
+    ('13641', '13636'), ('13642', '13630'), ('13643', '13637'), ('13644', '13638'), ('13645', '13639'),
+    ('14068', '13635'), ('14069', '13641'), ('14070', '13642'), ('14071', '13643'), ('14072', '13645'), ('14073', '13645'),
+    ('14074', '14069'), ('14075', '14070'), ('14076', '14071'), ('14077', '14072'), ('14078', '14073'), ('14079', '14070'),
+    ('14080', '14071'), ('14081', '14077'), ('14082', '14078'),
+    ('14084', '14070'), ('14085', '14069'), ('INF34', '14070'), ('14087', '14070'), ('14088', '14081'),
+    ('14090', '14084'), ('14091', '14074'), ('14091', '14087'), ('14092', '13040'),
+    ('14094', '14081'), ('14094', '14079'), ('14094', '13640'), ('14094', '14075'),
+    ('INF43', '14089')
+) AS r(curso, prerrequisito)
+JOIN public.curso c ON c.codigo = r.curso
+JOIN public.curso p ON p.codigo = r.prerrequisito;
+
+-- Autocomprobación contra los totales del plan (215 créditos; 60 cursos; 47 prerrequisitos).
+DO $$
+BEGIN
+    ASSERT (SELECT sum(creditos) FROM public.curso) = 215, 'la suma de créditos del plan no es 215';
+    ASSERT (SELECT count(*) FROM public.escuela_curso) = 60, 'faltan cursos en el plan';
+    ASSERT (SELECT count(*) FROM public.curso_prerrequisito) = 47, 'algún prerrequisito no encontró su curso';
+END $$;
 
 COMMIT;

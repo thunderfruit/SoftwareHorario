@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict jU05A3qZBN4rMgmfvdiUZ6pQlKfdmSVcKx75xeYLnPQtjVxDTDmw1R8pwp14LyC
+\restrict 2xWtIpUCwnFzjk5KuyxlbwyYiVWqsEIAf3H4wIstYMvoSoELXkmlIJZSGIf9WGj
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -31,37 +31,6 @@ CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA public;
 --
 
 COMMENT ON EXTENSION btree_gist IS 'support for indexing common datatypes in GiST';
-
-
---
--- Name: check_teacher_schedule_overlap(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.check_teacher_schedule_overlap() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-DECLARE
-  v_docente_id int;
-  v_periodo_id int;
-BEGIN
-  SELECT docente_id, periodo_id INTO v_docente_id, v_periodo_id
-  FROM detalle_curso WHERE detalle_curso_id = NEW.detalle_curso_id;
-
-  -- serializes concurrent inserts for the same teacher so both can't pass the check
-  PERFORM pg_advisory_xact_lock(v_docente_id);
-
-  IF EXISTS (
-    SELECT 1 FROM horario_detalle h JOIN detalle_curso dc USING (detalle_curso_id)
-    WHERE dc.docente_id = v_docente_id AND dc.periodo_id = v_periodo_id
-      AND h.dia_semana = NEW.dia_semana
-      AND h.hora_inicio < NEW.hora_fin AND NEW.hora_inicio < h.hora_fin
-      AND h.horario_detalle_id <> NEW.horario_detalle_id
-  ) THEN
-    RAISE EXCEPTION 'El docente % ya tiene clase el % entre % y %',
-      v_docente_id, NEW.dia_semana, NEW.hora_inicio, NEW.hora_fin;
-  END IF;
-  RETURN NEW;
-END $$;
 
 
 --
@@ -150,7 +119,18 @@ ALTER SEQUENCE public.categoria_salon_categoria_salon_id_seq OWNED BY public.cat
 CREATE TABLE public.curso (
     curso_id integer NOT NULL,
     nombre character varying(150) NOT NULL,
-    departamento_id integer NOT NULL
+    departamento_id integer,
+    codigo character varying(10) NOT NULL,
+    tipo character varying(2) NOT NULL,
+    horas_teoria smallint DEFAULT 0 NOT NULL,
+    horas_practica smallint DEFAULT 0 NOT NULL,
+    horas_laboratorio smallint DEFAULT 0 NOT NULL,
+    creditos smallint NOT NULL,
+    CONSTRAINT curso_creditos_check CHECK ((creditos >= 0)),
+    CONSTRAINT curso_horas_laboratorio_check CHECK ((horas_laboratorio >= 0)),
+    CONSTRAINT curso_horas_practica_check CHECK ((horas_practica >= 0)),
+    CONSTRAINT curso_horas_teoria_check CHECK ((horas_teoria >= 0)),
+    CONSTRAINT curso_tipo_check CHECK (((tipo)::text = ANY ((ARRAY['EG'::character varying, 'EE'::character varying, 'ES'::character varying])::text[])))
 );
 
 
@@ -172,6 +152,17 @@ CREATE SEQUENCE public.curso_curso_id_seq
 --
 
 ALTER SEQUENCE public.curso_curso_id_seq OWNED BY public.curso.curso_id;
+
+
+--
+-- Name: curso_prerrequisito; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.curso_prerrequisito (
+    curso_id integer NOT NULL,
+    prerrequisito_id integer NOT NULL,
+    CONSTRAINT curso_prerrequisito_check CHECK ((curso_id <> prerrequisito_id))
+);
 
 
 --
@@ -203,40 +194,6 @@ CREATE SEQUENCE public.departamento_departamento_id_seq
 --
 
 ALTER SEQUENCE public.departamento_departamento_id_seq OWNED BY public.departamento.departamento_id;
-
-
---
--- Name: detalle_curso; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.detalle_curso (
-    detalle_curso_id integer NOT NULL,
-    docente_id integer NOT NULL,
-    curso_id integer NOT NULL,
-    periodo_id integer NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
--- Name: detalle_curso_detalle_curso_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.detalle_curso_detalle_curso_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: detalle_curso_detalle_curso_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.detalle_curso_detalle_curso_id_seq OWNED BY public.detalle_curso.detalle_curso_id;
 
 
 --
@@ -365,7 +322,9 @@ CREATE TABLE public.escuela (
 
 CREATE TABLE public.escuela_curso (
     escuela_id integer NOT NULL,
-    curso_id integer NOT NULL
+    curso_id integer NOT NULL,
+    ciclo smallint NOT NULL,
+    CONSTRAINT escuela_curso_ciclo_check CHECK (((ciclo >= 1) AND (ciclo <= 12)))
 );
 
 
@@ -455,13 +414,17 @@ ALTER SEQUENCE public.grado_academico_grado_academico_id_seq OWNED BY public.gra
 
 CREATE TABLE public.horario_detalle (
     horario_detalle_id integer NOT NULL,
-    detalle_curso_id integer NOT NULL,
+    seccion_id integer NOT NULL,
+    periodo_id integer NOT NULL,
+    docente_id integer NOT NULL,
     salon_id integer NOT NULL,
+    tipo_sesion character varying(11) NOT NULL,
     dia_semana character varying(10) NOT NULL,
     hora_inicio time without time zone NOT NULL,
     hora_fin time without time zone NOT NULL,
     CONSTRAINT horario_detalle_check CHECK ((hora_fin > hora_inicio)),
-    CONSTRAINT horario_detalle_dia_semana_check CHECK (((dia_semana)::text = ANY ((ARRAY['Lunes'::character varying, 'Martes'::character varying, 'Miercoles'::character varying, 'Jueves'::character varying, 'Viernes'::character varying, 'Sabado'::character varying])::text[])))
+    CONSTRAINT horario_detalle_dia_semana_check CHECK (((dia_semana)::text = ANY ((ARRAY['Lunes'::character varying, 'Martes'::character varying, 'Miercoles'::character varying, 'Jueves'::character varying, 'Viernes'::character varying, 'Sabado'::character varying])::text[]))),
+    CONSTRAINT horario_detalle_tipo_sesion_check CHECK (((tipo_sesion)::text = ANY ((ARRAY['Teoría'::character varying, 'Práctica'::character varying, 'Laboratorio'::character varying])::text[])))
 );
 
 
@@ -636,6 +599,42 @@ ALTER SEQUENCE public.salon_salon_id_seq OWNED BY public.salon.salon_id;
 
 
 --
+-- Name: seccion; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.seccion (
+    seccion_id integer NOT NULL,
+    escuela_id integer NOT NULL,
+    curso_id integer NOT NULL,
+    periodo_id integer NOT NULL,
+    letra character varying(5) NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    extraordinaria boolean DEFAULT false NOT NULL
+);
+
+
+--
+-- Name: seccion_seccion_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.seccion_seccion_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: seccion_seccion_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.seccion_seccion_id_seq OWNED BY public.seccion.seccion_id;
+
+
+--
 -- Name: sede; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -666,6 +665,42 @@ ALTER SEQUENCE public.sede_sede_id_seq OWNED BY public.sede.sede_id;
 
 
 --
+-- Name: usuario; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.usuario (
+    usuario_id integer NOT NULL,
+    nombre_usuario character varying(50) NOT NULL,
+    password_hash character varying(255) NOT NULL,
+    rol character varying(15) NOT NULL,
+    docente_id integer,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT usuario_check CHECK ((((rol)::text = 'Docente'::text) = (docente_id IS NOT NULL))),
+    CONSTRAINT usuario_rol_check CHECK (((rol)::text = ANY ((ARRAY['Administrador'::character varying, 'Docente'::character varying])::text[])))
+);
+
+
+--
+-- Name: usuario_usuario_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.usuario_usuario_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: usuario_usuario_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.usuario_usuario_id_seq OWNED BY public.usuario.usuario_id;
+
+
+--
 -- Name: categoria categoria_id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -691,13 +726,6 @@ ALTER TABLE ONLY public.curso ALTER COLUMN curso_id SET DEFAULT nextval('public.
 --
 
 ALTER TABLE ONLY public.departamento ALTER COLUMN departamento_id SET DEFAULT nextval('public.departamento_departamento_id_seq'::regclass);
-
-
---
--- Name: detalle_curso detalle_curso_id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.detalle_curso ALTER COLUMN detalle_curso_id SET DEFAULT nextval('public.detalle_curso_detalle_curso_id_seq'::regclass);
 
 
 --
@@ -778,10 +806,24 @@ ALTER TABLE ONLY public.salon ALTER COLUMN salon_id SET DEFAULT nextval('public.
 
 
 --
+-- Name: seccion seccion_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seccion ALTER COLUMN seccion_id SET DEFAULT nextval('public.seccion_seccion_id_seq'::regclass);
+
+
+--
 -- Name: sede sede_id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sede ALTER COLUMN sede_id SET DEFAULT nextval('public.sede_sede_id_seq'::regclass);
+
+
+--
+-- Name: usuario usuario_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.usuario ALTER COLUMN usuario_id SET DEFAULT nextval('public.usuario_usuario_id_seq'::regclass);
 
 
 --
@@ -809,11 +851,27 @@ ALTER TABLE ONLY public.categoria_salon
 
 
 --
+-- Name: curso curso_codigo_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.curso
+    ADD CONSTRAINT curso_codigo_key UNIQUE (codigo);
+
+
+--
 -- Name: curso curso_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.curso
     ADD CONSTRAINT curso_pkey PRIMARY KEY (curso_id);
+
+
+--
+-- Name: curso_prerrequisito curso_prerrequisito_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.curso_prerrequisito
+    ADD CONSTRAINT curso_prerrequisito_pkey PRIMARY KEY (curso_id, prerrequisito_id);
 
 
 --
@@ -830,22 +888,6 @@ ALTER TABLE ONLY public.departamento
 
 ALTER TABLE ONLY public.departamento
     ADD CONSTRAINT departamento_pkey PRIMARY KEY (departamento_id);
-
-
---
--- Name: detalle_curso detalle_curso_docente_id_curso_id_periodo_id_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.detalle_curso
-    ADD CONSTRAINT detalle_curso_docente_id_curso_id_periodo_id_key UNIQUE (docente_id, curso_id, periodo_id);
-
-
---
--- Name: detalle_curso detalle_curso_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.detalle_curso
-    ADD CONSTRAINT detalle_curso_pkey PRIMARY KEY (detalle_curso_id);
 
 
 --
@@ -977,11 +1019,19 @@ ALTER TABLE ONLY public.modalidad
 
 
 --
+-- Name: horario_detalle no_choque_docente; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.horario_detalle
+    ADD CONSTRAINT no_choque_docente EXCLUDE USING gist (docente_id WITH =, periodo_id WITH =, dia_semana WITH =, tsrange(('2000-01-01'::date + hora_inicio), ('2000-01-01'::date + hora_fin)) WITH &&);
+
+
+--
 -- Name: horario_detalle no_choque_salon; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.horario_detalle
-    ADD CONSTRAINT no_choque_salon EXCLUDE USING gist (salon_id WITH =, dia_semana WITH =, tsrange(('2000-01-01'::date + hora_inicio), ('2000-01-01'::date + hora_fin)) WITH &&);
+    ADD CONSTRAINT no_choque_salon EXCLUDE USING gist (salon_id WITH =, periodo_id WITH =, dia_semana WITH =, tsrange(('2000-01-01'::date + hora_inicio), ('2000-01-01'::date + hora_fin)) WITH &&);
 
 
 --
@@ -1025,6 +1075,30 @@ ALTER TABLE ONLY public.salon
 
 
 --
+-- Name: seccion seccion_escuela_id_curso_id_periodo_id_letra_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seccion
+    ADD CONSTRAINT seccion_escuela_id_curso_id_periodo_id_letra_key UNIQUE (escuela_id, curso_id, periodo_id, letra);
+
+
+--
+-- Name: seccion seccion_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seccion
+    ADD CONSTRAINT seccion_pkey PRIMARY KEY (seccion_id);
+
+
+--
+-- Name: seccion seccion_seccion_id_periodo_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seccion
+    ADD CONSTRAINT seccion_seccion_id_periodo_id_key UNIQUE (seccion_id, periodo_id);
+
+
+--
 -- Name: sede sede_nombre_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1041,6 +1115,30 @@ ALTER TABLE ONLY public.sede
 
 
 --
+-- Name: usuario usuario_docente_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT usuario_docente_id_key UNIQUE (docente_id);
+
+
+--
+-- Name: usuario usuario_nombre_usuario_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT usuario_nombre_usuario_key UNIQUE (nombre_usuario);
+
+
+--
+-- Name: usuario usuario_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT usuario_pkey PRIMARY KEY (usuario_id);
+
+
+--
 -- Name: docente_categoria_historial_one_current; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1048,17 +1146,10 @@ CREATE UNIQUE INDEX docente_categoria_historial_one_current ON public.docente_ca
 
 
 --
--- Name: ix_horario_detalle_curso; Type: INDEX; Schema: public; Owner: -
+-- Name: ix_horario_detalle_seccion; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX ix_horario_detalle_curso ON public.horario_detalle USING btree (detalle_curso_id);
-
-
---
--- Name: ix_horario_salon; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX ix_horario_salon ON public.horario_detalle USING btree (salon_id, dia_semana);
+CREATE INDEX ix_horario_detalle_seccion ON public.horario_detalle USING btree (seccion_id);
 
 
 --
@@ -1069,13 +1160,6 @@ CREATE UNIQUE INDEX ux_historial_categoria_activo ON public.docente_categoria_hi
 
 
 --
--- Name: detalle_curso trg_detalle_curso_updated_at; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_detalle_curso_updated_at BEFORE UPDATE ON public.detalle_curso FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
-
-
---
 -- Name: docente_categoria_historial trg_historial_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -1083,17 +1167,17 @@ CREATE TRIGGER trg_historial_updated_at BEFORE UPDATE ON public.docente_categori
 
 
 --
--- Name: horario_detalle trg_horario_detalle_teacher_overlap; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_horario_detalle_teacher_overlap BEFORE INSERT OR UPDATE ON public.horario_detalle FOR EACH ROW EXECUTE FUNCTION public.check_teacher_schedule_overlap();
-
-
---
 -- Name: plaza trg_plaza_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER trg_plaza_updated_at BEFORE UPDATE ON public.plaza FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: seccion trg_seccion_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_seccion_updated_at BEFORE UPDATE ON public.seccion FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -1113,35 +1197,27 @@ ALTER TABLE ONLY public.curso
 
 
 --
+-- Name: curso_prerrequisito curso_prerrequisito_curso_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.curso_prerrequisito
+    ADD CONSTRAINT curso_prerrequisito_curso_id_fkey FOREIGN KEY (curso_id) REFERENCES public.curso(curso_id);
+
+
+--
+-- Name: curso_prerrequisito curso_prerrequisito_prerrequisito_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.curso_prerrequisito
+    ADD CONSTRAINT curso_prerrequisito_prerrequisito_id_fkey FOREIGN KEY (prerrequisito_id) REFERENCES public.curso(curso_id);
+
+
+--
 -- Name: departamento departamento_facultad_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.departamento
     ADD CONSTRAINT departamento_facultad_id_fkey FOREIGN KEY (facultad_id) REFERENCES public.facultad(facultad_id);
-
-
---
--- Name: detalle_curso detalle_curso_curso_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.detalle_curso
-    ADD CONSTRAINT detalle_curso_curso_id_fkey FOREIGN KEY (curso_id) REFERENCES public.curso(curso_id);
-
-
---
--- Name: detalle_curso detalle_curso_docente_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.detalle_curso
-    ADD CONSTRAINT detalle_curso_docente_id_fkey FOREIGN KEY (docente_id) REFERENCES public.docente(docente_id);
-
-
---
--- Name: detalle_curso detalle_curso_periodo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.detalle_curso
-    ADD CONSTRAINT detalle_curso_periodo_id_fkey FOREIGN KEY (periodo_id) REFERENCES public.periodo(periodo_id);
 
 
 --
@@ -1233,11 +1309,11 @@ ALTER TABLE ONLY public.escuela
 
 
 --
--- Name: horario_detalle horario_detalle_detalle_curso_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: horario_detalle horario_detalle_docente_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.horario_detalle
-    ADD CONSTRAINT horario_detalle_detalle_curso_id_fkey FOREIGN KEY (detalle_curso_id) REFERENCES public.detalle_curso(detalle_curso_id);
+    ADD CONSTRAINT horario_detalle_docente_id_fkey FOREIGN KEY (docente_id) REFERENCES public.docente(docente_id);
 
 
 --
@@ -1246,6 +1322,14 @@ ALTER TABLE ONLY public.horario_detalle
 
 ALTER TABLE ONLY public.horario_detalle
     ADD CONSTRAINT horario_detalle_salon_id_fkey FOREIGN KEY (salon_id) REFERENCES public.salon(salon_id);
+
+
+--
+-- Name: horario_detalle horario_detalle_seccion_id_periodo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.horario_detalle
+    ADD CONSTRAINT horario_detalle_seccion_id_periodo_id_fkey FOREIGN KEY (seccion_id, periodo_id) REFERENCES public.seccion(seccion_id, periodo_id) ON UPDATE CASCADE;
 
 
 --
@@ -1289,8 +1373,32 @@ ALTER TABLE ONLY public.salon
 
 
 --
+-- Name: seccion seccion_escuela_id_curso_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seccion
+    ADD CONSTRAINT seccion_escuela_id_curso_id_fkey FOREIGN KEY (escuela_id, curso_id) REFERENCES public.escuela_curso(escuela_id, curso_id);
+
+
+--
+-- Name: seccion seccion_periodo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seccion
+    ADD CONSTRAINT seccion_periodo_id_fkey FOREIGN KEY (periodo_id) REFERENCES public.periodo(periodo_id);
+
+
+--
+-- Name: usuario usuario_docente_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT usuario_docente_id_fkey FOREIGN KEY (docente_id) REFERENCES public.docente(docente_id);
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict jU05A3qZBN4rMgmfvdiUZ6pQlKfdmSVcKx75xeYLnPQtjVxDTDmw1R8pwp14LyC
+\unrestrict 2xWtIpUCwnFzjk5KuyxlbwyYiVWqsEIAf3H4wIstYMvoSoELXkmlIJZSGIf9WGj
 
