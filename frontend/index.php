@@ -53,7 +53,7 @@ pageHeader('Horario', function () use ($periods, $periodId, $schools, $school, $
                         <summary>Ciclo <?= cycleLabel($cycleNumber) ?> <span class="count"><?= count($byCourse) ?> curso(s)</span></summary>
                         <?php renderGrid($cycleBlocks, fn ($b) => [
                             $b['codigo'] . ' ' . $b['curso'],
-                            sectionLabel($b) . ' · ' . $b['tipo_sesion'],
+                            sectionLabel($b) . ', ' . $b['tipo_sesion'],
                             $b['docente'],
                             $b['salon'],
                         ]); ?>
@@ -68,8 +68,8 @@ pageHeader('Horario', function () use ($periods, $periodId, $schools, $school, $
                                         <summary><?= e(sectionLabel($sectionBlocks[0])) ?></summary>
                                         <ul class="block-list">
                                             <?php foreach ($sectionBlocks as $b): ?>
-                                                <li><strong><?= e(blockTime($b)) ?></strong> · <?= e($b['tipo_sesion']) ?>
-                                                    · <?= e($b['docente']) ?> · <?= e($b['salon']) ?></li>
+                                                <li><strong><?= e(blockTime($b)) ?></strong>
+                                                    <?= e($b['tipo_sesion']) ?> con <?= e($b['docente']) ?>, en <?= e($b['salon']) ?></li>
                                             <?php endforeach; ?>
                                         </ul>
                                     </details>

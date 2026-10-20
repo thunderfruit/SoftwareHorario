@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $blocks = scheduleBlocks($pdo, ['periodo_id' => $section['periodo_id'], 'seccion_id' => $sectionId]);
 $teachers = array_map(fn ($t) => $t + ['label' => $t['apellidos'] . ', ' . $t['nombres'] . ' (' . $t['codigo_docente'] . ')'],
     listAllTeachers($pdo));
-$rooms = array_map(fn ($r) => $r + ['label' => $r['nombre'] . ' · ' . $r['categoria'] . ' · ' . $r['capacidad']], listRooms($pdo));
+$rooms = array_map(fn ($r) => $r + ['label' => $r['nombre'] . ' (' . $r['categoria'] . ', ' . $r['capacidad'] . ' personas)'], listRooms($pdo));
 
 $requiredHours = ['Teoría' => $section['horas_teoria'], 'Práctica' => $section['horas_practica'], 'Laboratorio' => $section['horas_laboratorio']];
 $scheduledHours = array_fill_keys(SESSION_TYPES, 0);
@@ -99,12 +99,12 @@ foreach ($blocks as $block) {
 }
 $desired = desiredBlocks($pdo, ['seccion_id' => $sectionId]);
 
-pageHeader($section['codigo'] . ' · ' . $section['curso'] . ' · Sección ' . $section['letra']);
+pageHeader($section['codigo'] . ' ' . $section['curso'] . ', sección ' . $section['letra']);
 ?>
 <p class="hint">
-    <?= e($section['escuela']) ?> · Ciclo <?= cycleLabel($section['ciclo']) ?> · Periodo <?= e($section['periodo']) ?>
-    <?= $section['extraordinaria'] ? ' · <span class="tag">Repetición</span>' : '' ?>
-    · <a href="sections.php?period=<?= (int) $section['periodo_id'] ?>&amp;school=<?= (int) $section['escuela_id'] ?>&amp;cycle=<?= (int) $section['ciclo'] ?>">Volver a la carga horaria</a>
+    Escuela de <?= e($section['escuela']) ?>, ciclo <?= cycleLabel($section['ciclo']) ?>, periodo <?= e($section['periodo']) ?>.
+    <?= $section['extraordinaria'] ? '<span class="tag">Repetición</span>' : '' ?>
+    <a href="sections.php?period=<?= (int) $section['periodo_id'] ?>&amp;school=<?= (int) $section['escuela_id'] ?>&amp;cycle=<?= (int) $section['ciclo'] ?>">Volver a la carga horaria</a>
 </p>
 
 <div class="hours">

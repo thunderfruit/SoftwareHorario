@@ -20,7 +20,7 @@ pageHeader('Mi horario', function () use ($periods, $periodId) { ?>
 <?php pageTools(false); ?>
 <?php renderGrid($blocks, fn ($b) => [
     $b['codigo'] . ' ' . $b['curso'],
-    sectionLabel($b) . ' · ' . $b['tipo_sesion'],
+    sectionLabel($b) . ', ' . $b['tipo_sesion'],
     'Ciclo ' . cycleLabel($b['ciclo']),
     $b['salon'],
 ]); ?>

@@ -20,6 +20,11 @@ function renderGrid(array $blocks, callable $describe): void
     $from = min(array_map(fn ($b) => (int) substr($b['hora_inicio'], 0, 2), $blocks));
     $to = max(array_map(fn ($b) => (int) ceil(timeToHours($b['hora_fin'])), $blocks));
     ?>
+    <ul class="legend" aria-label="Tipos de sesión">
+        <?php foreach (SESSION_CLASSES as $type => $class): ?>
+            <li class="<?= $class ?>"><?= e($type) ?></li>
+        <?php endforeach; ?>
+    </ul>
     <div class="table-wrap">
         <table class="grid">
             <thead>
@@ -77,7 +82,7 @@ function cycleLabel(int $cycle): string
 
 function sectionLabel(array $block): string
 {
-    return 'Secc. ' . $block['letra'] . ($block['extraordinaria'] ? ' · Repetición' : '');
+    return 'Sección ' . $block['letra'] . ($block['extraordinaria'] ? ' (repetición)' : '');
 }
 
 function blockTime(array $block): string

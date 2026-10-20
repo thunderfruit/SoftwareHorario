@@ -56,8 +56,9 @@ pageHeader('Horario deseado', function () use ($periods, $periodId) { ?>
                     <?php $proposals = $desiredByLoad[$load['carga_horaria_id']] ?? [];
                     $proposed = array_sum(array_map('blockHours', $proposals)); ?>
                     <details class="node"<?= $proposed < $load['horas'] ? ' open' : '' ?>>
-                        <summary><?= e($load['codigo'] . ' ' . $load['curso']) ?> · <?= e(sectionLabel($load)) ?> · <?= e($load['tipo_sesion']) ?>
-                            <span class="count">Ciclo <?= cycleLabel($load['ciclo']) ?> · <?= formatHours($proposed) ?> de <?= (int) $load['horas'] ?> h propuestas</span></summary>
+                        <summary><?= e($load['codigo'] . ' ' . $load['curso']) ?>
+                            <span class="count"><?= e(sectionLabel($load) . ', ' . $load['tipo_sesion']) ?>, ciclo <?= cycleLabel($load['ciclo']) ?>.
+                                Propuestas <?= formatHours($proposed) ?> de <?= (int) $load['horas'] ?> h</span></summary>
                         <ul class="block-list">
                             <?php foreach ($proposals as $proposal): ?>
                                 <li><?= e(blockTime($proposal)) ?>
@@ -105,7 +106,7 @@ pageHeader('Horario deseado', function () use ($periods, $periodId) { ?>
     <h2>Tu propuesta en la semana</h2>
     <?php renderGrid($desired, fn ($b) => [
         $b['codigo'] . ' ' . $b['curso'],
-        sectionLabel($b) . ' · ' . $b['tipo_sesion'],
+        sectionLabel($b) . ', ' . $b['tipo_sesion'],
     ]); ?>
 <?php endif; ?>
 <?php pageFooter(); ?>

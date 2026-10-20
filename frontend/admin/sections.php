@@ -91,7 +91,7 @@ pageHeader('Carga horaria', function () use ($periods, $periodId, $schools, $sch
             <option value="">Elige un curso del plan</option>
             <?php foreach (groupBy($courses, 'ciclo') as $courseCycle => $cycleCourses): ?>
                 <optgroup label="Ciclo <?= cycleLabel($courseCycle) ?>">
-                    <?= selectOptions(array_map(fn ($c) => $c + ['label' => $c['codigo'] . ' · ' . $c['nombre']], $cycleCourses),
+                    <?= selectOptions(array_map(fn ($c) => $c + ['label' => $c['codigo'] . ' ' . $c['nombre']], $cycleCourses),
                         'curso_id', 'label', null) ?>
                 </optgroup>
             <?php endforeach; ?>
@@ -129,7 +129,7 @@ pageHeader('Carga horaria', function () use ($periods, $periodId, $schools, $sch
                         <details class="node">
                             <summary>Sección <?= e($section['letra']) ?>
                                 <?= $section['extraordinaria'] ? '<span class="tag">Repetición</span>' : '' ?>
-                                <span class="count"><?= count($sectionLoads) ?> de <?= count($parts) ?> parte(s) asignadas ·
+                                <span class="count"><?= count($sectionLoads) ?> de <?= count($parts) ?> parte(s) asignadas,
                                     <?= (int) $section['bloques'] ?> bloque(s)</span></summary>
                             <form class="form-grid" method="post">
                                 <?= csrfField() ?>
@@ -140,7 +140,7 @@ pageHeader('Carga horaria', function () use ($periods, $periodId, $schools, $sch
                                 <input type="hidden" name="cycle" value="<?= (int) $cycle ?: '' ?>">
                                 <?php foreach ($parts as $type => $hours): ?>
                                     <?php $load = $sectionLoads[$type] ?? null; ?>
-                                    <label class="wide"><?= e($type) ?> · <?= (int) $hours ?> h
+                                    <label class="wide"><?= e($type) ?>, <?= (int) $hours ?> h
                                         <?= $load && $load['propuestas'] ? '<span class="hint">(' . (int) $load['propuestas'] . ' propuesta(s) del docente)</span>' : '' ?>
                                         <select name="teacher[<?= e($type) ?>]">
                                             <?= selectOptions($teachers, 'docente_id', 'label', $load['docente_id'] ?? null, 'Sin asignar') ?>

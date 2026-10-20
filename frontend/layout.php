@@ -103,7 +103,7 @@ function pageHeader(string $title, ?callable $aside = null): void
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e($title) ?> · Horarios UNT</title>
+    <title><?= e($title) ?> | Horarios UNT</title>
     <link rel="icon" type="image/png" href="<?= e(url('img/favicon.png')) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -116,7 +116,7 @@ function pageHeader(string $title, ?callable $aside = null): void
         <img src="<?= e(url('img/escudo.png')) ?>" alt="" width="59" height="48">
         <span class="brand-text">
             <span class="brand-name">Universidad Nacional de Trujillo</span>
-            <span class="brand-app">Sistema de Horarios</span>
+            <span class="brand-app">Sistema de horarios</span>
         </span>
     </a>
     <nav>
@@ -133,6 +133,11 @@ function pageHeader(string $title, ?callable $aside = null): void
         <?php endif; ?>
     </nav>
 </header>
+<!-- the gold sweep from the brand manual's slides; drawn once on load -->
+<svg class="sweep" viewBox="0 0 1440 56" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    <path class="sweep-fill" d="M0 0H1440V10C1060 58 420 4 0 44Z"/>
+    <path class="sweep-line" d="M0 44C420 4 1060 58 1440 10" pathLength="1"/>
+</svg>
 <main>
     <div class="page-head">
         <h1><?= e($title) ?></h1>
@@ -151,7 +156,7 @@ function pageFooter(): void
 </main>
 <footer class="footer">
     <img src="<?= e(url('img/escudo.png')) ?>" alt="" width="40" height="32">
-    <span>Universidad Nacional de Trujillo · Sistema de Horarios</span>
+    <span>Universidad Nacional de Trujillo</span>
 </footer>
 </body>
 </html>

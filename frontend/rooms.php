@@ -48,11 +48,11 @@ pageHeader('Horario por salón', function () use ($periods, $periodId, $campuses
                             <?php $roomBlocks = $blocks[$room['salon_id']] ?? []; ?>
                             <details class="node"<?= $roomId ? ' open' : '' ?>>
                                 <summary><?= e($room['nombre']) ?>
-                                    <span class="count">capacidad <?= (int) $room['capacidad'] ?> ·
+                                    <span class="count">Capacidad <?= (int) $room['capacidad'] ?>,
                                         <?= formatHours(array_sum(array_map('blockHours', $roomBlocks))) ?> h ocupadas</span></summary>
                                 <?php renderGrid($roomBlocks, fn ($b) => [
                                     $b['codigo'] . ' ' . $b['curso'],
-                                    sectionLabel($b) . ' · ' . $b['tipo_sesion'],
+                                    sectionLabel($b) . ', ' . $b['tipo_sesion'],
                                     $b['docente'],
                                 ]); ?>
                             </details>
