@@ -1,32 +1,28 @@
 <?php
 require_once __DIR__ . '/connection.php';
 
-// Escapes LIKE wildcards so a user typing "%" or "_" searches for them literally.
-function likePattern(string $value): string
-{
-    return '%' . addcslashes($value, '%_\\') . '%';
-}
-
 /**
- * Teachers with their current category and the assignment of their latest period.
- * Empty filters are ignored; text filters are case-insensitive partial matches.
+ * Teachers with their faculty, current category and the assignment of their latest period, ordered by faculty and department.
+ * Empty filters are ignored. Text filters (code, last_name, document) are case-insensitive partial matches;
+ * id filters (faculty_id, department_id, category_id, modality_id) are exact.
  */
-function searchTeachers(PDO $pdo, string $code = '', string $lastName = '', string $document = ''): array
+function searchTeachers(PDO $pdo, array $filters = []): array
 {
     $where = [];
     $params = [];
-
-    if ($code !== '') {
-        $where[] = 'd.codigo_docente ILIKE :code';
-        $params['code'] = likePattern($code);
+    foreach (['code' => 'd.codigo_docente', 'last_name' => 'd.apellidos', 'document' => 'd.numero_documento'] as $key => $column) {
+        if (($filters[$key] ?? '') !== '') {
+            $where[] = "$column ILIKE :$key";
+            $params[$key] = likePattern($filters[$key]);
+        }
     }
-    if ($lastName !== '') {
-        $where[] = 'd.apellidos ILIKE :last_name';
-        $params['last_name'] = likePattern($lastName);
-    }
-    if ($document !== '') {
-        $where[] = 'd.numero_documento ILIKE :document';
-        $params['document'] = likePattern($document);
+    $ids = ['faculty_id' => 'f.facultad_id', 'department_id' => 'd.departamento_id', 'category_id' => 'h.categoria_id',
+        'modality_id' => 'a.modalidad_id'];
+    foreach ($ids as $key => $column) {
+        if (isset($filters[$key])) {
+            $where[] = "$column = :$key";
+            $params[$key] = $filters[$key];
+        }
     }
 
     $sql = '
@@ -48,11 +44,21 @@ function searchTeachers(PDO $pdo, string $code = '', string $lastName = '', stri
         ) a ON true
         LEFT JOIN public.modalidad m ON m.modalidad_id = a.modalidad_id'
         . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
-        . ' ORDER BY d.apellidos, d.nombres';
+        . ' ORDER BY f.nombre, dep.nombre, d.apellidos, d.nombres';
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     return $stmt->fetchAll();
+}
+
+// Every department with its teachers (one row per teacher; teacher columns are null for an empty department).
+function listDepartmentsWithTeachers(PDO $pdo): array
+{
+    return $pdo->query('SELECT dep.facultad_id, dep.departamento_id, dep.nombre AS departamento,
+                               d.docente_id, d.codigo_docente, d.apellidos || \', \' || d.nombres AS docente
+                        FROM public.departamento dep
+                        LEFT JOIN public.docente d ON d.departamento_id = dep.departamento_id
+                        ORDER BY dep.nombre, d.apellidos, d.nombres')->fetchAll();
 }
 
 function listAllTeachers(PDO $pdo): array
@@ -152,10 +158,11 @@ function saveCurrentCategory(PDO $pdo, int $teacherId, ?int $categoryId): void
     }
 }
 
-// Lookup lists for the teacher form.
+// Lookup lists for the teacher form and filters.
 function teacherCatalogs(PDO $pdo): array
 {
     return [
+        'faculties' => $pdo->query('SELECT * FROM public.facultad ORDER BY nombre')->fetchAll(),
         'departments' => $pdo->query('SELECT d.departamento_id, d.nombre, f.nombre AS facultad
                                       FROM public.departamento d JOIN public.facultad f USING (facultad_id)
                                       ORDER BY f.nombre, d.nombre')->fetchAll(),

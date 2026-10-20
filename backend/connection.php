@@ -20,6 +20,12 @@ try {
     exit('No se pudo conectar a la base de datos.');
 }
 
+// Escapes LIKE wildcards so a user typing "%" or "_" searches for them literally.
+function likePattern(string $value): string
+{
+    return '%' . addcslashes($value, '%_\\') . '%';
+}
+
 // Prueba rápida: php connection.php
 if (realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
     echo 'Conectado a ' . $pdo->query('SELECT version()')->fetchColumn() . PHP_EOL;

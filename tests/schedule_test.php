@@ -4,6 +4,7 @@
 $_SERVER['SCRIPT_FILENAME'] = dirname(__DIR__) . '/frontend/index.php';
 require_once dirname(__DIR__) . '/frontend/grid.php';
 require_once dirname(__DIR__) . '/backend/teachers.php';
+require_once dirname(__DIR__) . '/backend/teaching_load.php';
 
 function check(bool $condition, string $message): void
 {
@@ -76,7 +77,7 @@ try {
     $teacherClash = $block($bdB, $t1, $labB, 'Teoría', '07:00', '09:00');
     check(count($teacherClash) === 2, 'choque detectado aunque solo se cruce una hora');
     check($block($bdB, $t1, $labA, 'Teoría', '10:00', '12:00') === [], 'bloque contiguo (10:00 tras 08–10) permitido');
-    check($block($repeat, $t2, $labB, 'Laboratorio', '14:00', '16:00') === [], 'sección de repitencia con horario');
+    check($block($repeat, $t2, $labB, 'Laboratorio', '14:00', '16:00') === [], 'sección de repetición con horario');
 
     $cycle5 = scheduleBlocks($pdo, ['periodo_id' => $period['periodo_id'], 'escuela_id' => $school, 'ciclo' => 5]);
     check(count(array_filter($cycle5, fn ($b) => str_starts_with($b['letra'], 'T'))) === 3, 'filtro por escuela y ciclo');
@@ -101,6 +102,31 @@ try {
     deleteSection($pdo, $bdB);
     $created['sections'] = array_diff($created['sections'], [$bdB]);
     check(count(scheduleBlocks($pdo, ['periodo_id' => $period['periodo_id'], 'salon_id' => $labA])) === 1, 'borrar sección borra sus bloques');
+
+    // Teaching load: the admin assigns each part, the teacher proposes a time, the admin confirms it.
+    saveLoads($pdo, $bdA, ['Teoría' => $t1, 'Práctica' => $t2]);
+    $theory = teacherLoads($pdo, $t1, $period['periodo_id']);
+    check(count($theory) === 1 && $theory[0]['tipo_sesion'] === 'Teoría', 'el docente ve solo su parte de la carga');
+    $theory = $theory[0]['carga_horaria_id'];
+    check(!addDesiredBlock($pdo, $t2, $theory, 'Martes', '08:00', '10:00'), 'un docente no propone en la carga de otro');
+    check(addDesiredBlock($pdo, $t1, $theory, 'Martes', '08:00', '10:00'), 'propuesta del docente registrada');
+    $proposal = desiredBlocks($pdo, ['seccion_id' => $bdA])[0]['horario_deseado_id'];
+    deleteDesiredBlock($pdo, $proposal, 'docente_id', $t2);
+    check(count(desiredBlocks($pdo, ['seccion_id' => $bdA])) === 1, 'un docente no borra la propuesta de otro');
+    check(confirmDesiredBlock($pdo, $bdA, $proposal, $labA) === [] && !desiredBlocks($pdo, ['seccion_id' => $bdA]),
+        'confirmar convierte la propuesta en bloque');
+    $confirmed = array_filter(scheduleBlocks($pdo, ['periodo_id' => $period['periodo_id'], 'seccion_id' => $bdA]),
+        fn ($b) => $b['dia_semana'] === 'Martes');
+    check(count($confirmed) === 1 && current($confirmed)['docente_id'] === $t1, 'el bloque confirmado lleva el docente de la carga');
+    check(confirmDesiredBlock($pdo, $bdA, $proposal, $labA) === null, 'una propuesta ya confirmada no se repite');
+
+    addDesiredBlock($pdo, $t1, $theory, 'Jueves', '08:00', '10:00');
+    saveLoads($pdo, $bdA, ['Teoría' => $t2]);
+    check(!desiredBlocks($pdo, ['seccion_id' => $bdA]) && in_array('Teoría', array_column(teacherLoads($pdo, $t2, $period['periodo_id']), 'tipo_sesion'), true),
+        'cambiar el docente descarta las propuestas del anterior');
+    deleteSection($pdo, $bdA);
+    $created['sections'] = array_diff($created['sections'], [$bdA]);
+    check(!teacherLoads($pdo, $t2, $period['periodo_id']), 'borrar la sección borra su carga');
     echo "Todas las pruebas pasaron.\n";
 } finally {
     foreach ($created['users'] as $name) {

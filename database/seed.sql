@@ -25,8 +25,9 @@ INSERT INTO public.sede (nombre) VALUES
     ('Huamachuco'),
     ('Santiago de Chuco');
 
-INSERT INTO public.escuela (facultad_id, nombre)
-SELECT f.facultad_id, e.nombre
+-- Todas en Trujillo hasta confirmar qué escuelas funcionan en cada filial.
+INSERT INTO public.escuela (facultad_id, nombre, sede_id)
+SELECT f.facultad_id, e.nombre, (SELECT sede_id FROM public.sede WHERE nombre = 'Trujillo')
 FROM (VALUES
     ('Ciencias Agropecuarias', 'Agronomía'),
     ('Ciencias Agropecuarias', 'Ingeniería Agrícola'),

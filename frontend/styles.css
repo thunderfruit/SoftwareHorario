@@ -1,4 +1,6 @@
-/* Palette from the UNT corporate identity manual. Gold is only used as a background with dark text (too light as text). */
+/* Palette and logo from the UNT corporate identity manual (Manual Corporativo 2022).
+   Gold is only used as a background with dark text (too light as text).
+   The manual's typeface is Trajan Pro (commercial); Cinzel is a free face drawn from the same Roman capitals. */
 :root {
     color-scheme: light;
     --unt-blue: #12377B;
@@ -23,6 +25,9 @@
     --teoria-border: var(--unt-blue);
     --practica-bg: #E8F5EC;
     --lab-bg: #FDF5DD;
+    --node-bg: var(--surface);
+    --node-open: #F0F3F9;
+    --font-title: "Cinzel", "Trajan Pro", Georgia, serif;
 }
 
 /* Dark mode follows the system setting; print always stays light. Blue text is lightened for contrast on dark surfaces. */
@@ -44,23 +49,42 @@
         --teoria-border: #5C86D6;
         --practica-bg: #173323;
         --lab-bg: #3A3015;
+        --node-open: #202837;
     }
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; font-family: system-ui, "Segoe UI", Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.4; }
-main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 48px; }
-h1 { font-size: 1.6rem; color: var(--accent-text); margin: 0 0 16px; }
+body { margin: 0; font-family: "Lato", system-ui, "Segoe UI", Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.4;
+    min-height: 100vh; display: flex; flex-direction: column; }
+main { width: 100%; max-width: 1280px; margin: 0 auto; padding: 24px 16px 48px; flex: 1; }
+h1 { font-family: var(--font-title); font-size: 1.7rem; color: var(--accent-text); margin: 0; letter-spacing: .02em; }
 h2 { font-size: 1.15rem; color: var(--accent-text); }
+.page-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin-bottom: 20px;
+    padding-bottom: 12px; border-bottom: 3px solid var(--unt-gold); }
+.page-head .filters { margin: 0; }
 a { color: var(--accent-text); }
 
 .topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px;
     background: var(--unt-blue); border-bottom: 4px solid var(--unt-gold); padding: 12px 16px; }
-.brand { color: #fff; font-weight: 700; font-size: 1.15rem; text-decoration: none; letter-spacing: .02em; }
-.brand span { color: var(--unt-gold); }
+.brand { display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; }
+.brand img { height: 48px; width: auto; }
+.brand-text { display: flex; flex-direction: column; padding-left: 12px; border-left: 2px solid rgba(255,255,255,.6); }
+.brand-name { font-family: var(--font-title); font-weight: 700; font-size: 1rem; letter-spacing: .03em; }
+.brand-app { color: var(--unt-gold); font-weight: 700; font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; }
 .topbar nav { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; }
 .topbar nav a, .topbar nav .link { color: #fff; text-decoration: none; font-size: .95rem; }
 .topbar nav a:hover, .topbar nav .link:hover { text-decoration: underline; }
+.topbar nav a[aria-current="page"] { font-weight: 700; box-shadow: inset 0 -3px 0 var(--unt-gold); padding-bottom: 2px; }
+
+.footer { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 14px 16px; background: var(--unt-blue);
+    border-top: 4px solid var(--unt-gold); color: #fff; font-family: var(--font-title); font-size: .85rem; }
+.footer img { height: 32px; width: auto; }
+
+.login { display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch; margin-bottom: 20px; }
+.login-brand { background: var(--unt-blue); border-radius: 8px; border-bottom: 4px solid var(--unt-gold); padding: 24px 32px;
+    display: flex; align-items: center; justify-content: center; }
+.login-brand img { width: 207px; height: auto; }
+.login .card { margin: 0; flex: 1 1 280px; }
 
 .card, .filters { background: var(--surface); padding: 16px 20px; border-radius: 8px; box-shadow: 0 1px 3px var(--shadow); margin-bottom: 20px; }
 .narrow { max-width: 380px; display: grid; gap: 12px; }
@@ -71,7 +95,27 @@ label.checkbox { flex-direction: row; align-items: center; font-weight: 500; }
 fieldset { border: 1px solid var(--line); border-radius: 6px; display: flex; flex-wrap: wrap; gap: 12px 16px; padding: 8px 12px 12px; }
 legend { font-weight: 700; color: var(--accent-text); padding: 0 4px; }
 input, select { padding: 8px; border: 1px solid var(--input-border); border-radius: 4px; font: inherit; background: var(--surface); color: var(--text); max-width: 100%; }
-.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.actions, .tools, .inline-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tools { margin: 0 0 12px; }
+
+/* Expandable tree: each <details class="node"> is one level (school > cycle > course > section, campus > type > room...) */
+.tree { margin-bottom: 20px; }
+details.node { background: var(--node-bg); border: 1px solid var(--line); border-left: 4px solid var(--unt-blue); border-radius: 6px;
+    margin: 0 0 8px; padding: 0 12px; }
+details.node details.node { border-left-color: var(--unt-gold); }
+details.node details.node details.node { border-left-color: var(--unt-green); }
+details.node details.node details.node details.node { border-left-color: var(--input-border); }
+details.node[open] { background: var(--node-open); padding-bottom: 8px; }
+details.node[open] > details.node, details.node[open] > .table-wrap { background: var(--surface); }
+details.node > summary { cursor: pointer; padding: 10px 0; font-weight: 700; color: var(--accent-text); list-style: none;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+details.node > summary::-webkit-details-marker { display: none; }
+details.node > summary::before { content: "▸"; display: inline-block; width: 1em; transition: transform .15s; }
+details.node[open] > summary::before { transform: rotate(90deg); }
+details.node > summary .count { font-weight: 400; font-size: .85rem; }
+details.node > summary:focus-visible { outline: 3px solid var(--unt-gold); outline-offset: 2px; }
+.block-list { margin: 4px 0 8px; padding-left: 22px; }
+.block-list li { margin: 3px 0; }
 
 button, .button { padding: 8px 15px; border: none; border-radius: 4px; background: var(--unt-blue); color: #fff;
     font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; display: inline-block; }
@@ -116,7 +160,9 @@ table.grid td { padding: 4px; height: 52px; }
 .block.continues { opacity: .85; }
 
 @media print {
-    .topbar, .no-print, .filters { display: none; }
+    .topbar, .footer, .no-print, .filters, form { display: none; }
+    details.node { border: none; padding: 0; background: none; }
+    details.node > summary::before { content: none; }
     body { background: #fff; }
     main { padding: 0; max-width: none; }
     .table-wrap { box-shadow: none; overflow: visible; }

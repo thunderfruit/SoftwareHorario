@@ -50,7 +50,6 @@ function renderGrid(array $blocks, callable $describe): void
             </tbody>
         </table>
     </div>
-    <p class="no-print"><button type="button" onclick="window.print()">Imprimir</button></p>
     <?php
 }
 
@@ -60,6 +59,17 @@ function timeToHours(string $time): float
     return (int) $h + (int) $m / 60;
 }
 
+function blockHours(array $block): float
+{
+    return timeToHours($block['hora_fin']) - timeToHours($block['hora_inicio']);
+}
+
+// Hours as shown on screen: "2", "1.5".
+function formatHours(float $hours): string
+{
+    return rtrim(rtrim(number_format($hours, 1, '.', ''), '0'), '.');
+}
+
 function cycleLabel(int $cycle): string
 {
     return ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][$cycle - 1];
@@ -67,7 +77,7 @@ function cycleLabel(int $cycle): string
 
 function sectionLabel(array $block): string
 {
-    return 'Secc. ' . $block['letra'] . ($block['extraordinaria'] ? ' · Repitencia' : '');
+    return 'Secc. ' . $block['letra'] . ($block['extraordinaria'] ? ' · Repetición' : '');
 }
 
 function blockTime(array $block): string

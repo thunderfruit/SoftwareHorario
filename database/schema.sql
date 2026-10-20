@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 2xWtIpUCwnFzjk5KuyxlbwyYiVWqsEIAf3H4wIstYMvoSoELXkmlIJZSGIf9WGj
+\restrict x0T1PTNZbg4OECRihqCHDgYZHsTSj54PKqGkBffk7A2f9V8bH7pJ5TOD36Drkhm
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -50,6 +50,39 @@ $$;
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- Name: carga_horaria; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.carga_horaria (
+    carga_horaria_id integer NOT NULL,
+    seccion_id integer NOT NULL,
+    tipo_sesion character varying(11) NOT NULL,
+    docente_id integer NOT NULL,
+    CONSTRAINT carga_horaria_tipo_sesion_check CHECK (((tipo_sesion)::text = ANY ((ARRAY['Teoría'::character varying, 'Práctica'::character varying, 'Laboratorio'::character varying])::text[])))
+);
+
+
+--
+-- Name: carga_horaria_carga_horaria_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.carga_horaria_carga_horaria_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: carga_horaria_carga_horaria_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.carga_horaria_carga_horaria_id_seq OWNED BY public.carga_horaria.carga_horaria_id;
+
 
 --
 -- Name: categoria; Type: TABLE; Schema: public; Owner: -
@@ -312,7 +345,8 @@ ALTER SEQUENCE public.docente_docente_id_seq OWNED BY public.docente.docente_id;
 CREATE TABLE public.escuela (
     escuela_id integer NOT NULL,
     nombre character varying(150) NOT NULL,
-    facultad_id integer NOT NULL
+    facultad_id integer NOT NULL,
+    sede_id integer NOT NULL
 );
 
 
@@ -406,6 +440,41 @@ CREATE SEQUENCE public.grado_academico_grado_academico_id_seq
 --
 
 ALTER SEQUENCE public.grado_academico_grado_academico_id_seq OWNED BY public.grado_academico.grado_academico_id;
+
+
+--
+-- Name: horario_deseado; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.horario_deseado (
+    horario_deseado_id integer NOT NULL,
+    carga_horaria_id integer NOT NULL,
+    dia_semana character varying(10) NOT NULL,
+    hora_inicio time without time zone NOT NULL,
+    hora_fin time without time zone NOT NULL,
+    CONSTRAINT horario_deseado_check CHECK ((hora_fin > hora_inicio)),
+    CONSTRAINT horario_deseado_dia_semana_check CHECK (((dia_semana)::text = ANY ((ARRAY['Lunes'::character varying, 'Martes'::character varying, 'Miercoles'::character varying, 'Jueves'::character varying, 'Viernes'::character varying, 'Sabado'::character varying])::text[])))
+);
+
+
+--
+-- Name: horario_deseado_horario_deseado_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.horario_deseado_horario_deseado_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: horario_deseado_horario_deseado_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.horario_deseado_horario_deseado_id_seq OWNED BY public.horario_deseado.horario_deseado_id;
 
 
 --
@@ -701,6 +770,13 @@ ALTER SEQUENCE public.usuario_usuario_id_seq OWNED BY public.usuario.usuario_id;
 
 
 --
+-- Name: carga_horaria carga_horaria_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.carga_horaria ALTER COLUMN carga_horaria_id SET DEFAULT nextval('public.carga_horaria_carga_horaria_id_seq'::regclass);
+
+
+--
 -- Name: categoria categoria_id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -771,6 +847,13 @@ ALTER TABLE ONLY public.grado_academico ALTER COLUMN grado_academico_id SET DEFA
 
 
 --
+-- Name: horario_deseado horario_deseado_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.horario_deseado ALTER COLUMN horario_deseado_id SET DEFAULT nextval('public.horario_deseado_horario_deseado_id_seq'::regclass);
+
+
+--
 -- Name: horario_detalle horario_detalle_id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -824,6 +907,22 @@ ALTER TABLE ONLY public.sede ALTER COLUMN sede_id SET DEFAULT nextval('public.se
 --
 
 ALTER TABLE ONLY public.usuario ALTER COLUMN usuario_id SET DEFAULT nextval('public.usuario_usuario_id_seq'::regclass);
+
+
+--
+-- Name: carga_horaria carga_horaria_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.carga_horaria
+    ADD CONSTRAINT carga_horaria_pkey PRIMARY KEY (carga_horaria_id);
+
+
+--
+-- Name: carga_horaria carga_horaria_seccion_id_tipo_sesion_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.carga_horaria
+    ADD CONSTRAINT carga_horaria_seccion_id_tipo_sesion_key UNIQUE (seccion_id, tipo_sesion);
 
 
 --
@@ -995,6 +1094,14 @@ ALTER TABLE ONLY public.grado_academico
 
 
 --
+-- Name: horario_deseado horario_deseado_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.horario_deseado
+    ADD CONSTRAINT horario_deseado_pkey PRIMARY KEY (horario_deseado_id);
+
+
+--
 -- Name: horario_detalle horario_detalle_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1146,6 +1253,20 @@ CREATE UNIQUE INDEX docente_categoria_historial_one_current ON public.docente_ca
 
 
 --
+-- Name: ix_carga_horaria_docente; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_carga_horaria_docente ON public.carga_horaria USING btree (docente_id);
+
+
+--
+-- Name: ix_horario_deseado_carga; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_horario_deseado_carga ON public.horario_deseado USING btree (carga_horaria_id);
+
+
+--
 -- Name: ix_horario_detalle_seccion; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1178,6 +1299,22 @@ CREATE TRIGGER trg_plaza_updated_at BEFORE UPDATE ON public.plaza FOR EACH ROW E
 --
 
 CREATE TRIGGER trg_seccion_updated_at BEFORE UPDATE ON public.seccion FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: carga_horaria carga_horaria_docente_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.carga_horaria
+    ADD CONSTRAINT carga_horaria_docente_id_fkey FOREIGN KEY (docente_id) REFERENCES public.docente(docente_id);
+
+
+--
+-- Name: carga_horaria carga_horaria_seccion_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.carga_horaria
+    ADD CONSTRAINT carga_horaria_seccion_id_fkey FOREIGN KEY (seccion_id) REFERENCES public.seccion(seccion_id) ON DELETE CASCADE;
 
 
 --
@@ -1309,6 +1446,22 @@ ALTER TABLE ONLY public.escuela
 
 
 --
+-- Name: escuela escuela_sede_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escuela
+    ADD CONSTRAINT escuela_sede_id_fkey FOREIGN KEY (sede_id) REFERENCES public.sede(sede_id);
+
+
+--
+-- Name: horario_deseado horario_deseado_carga_horaria_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.horario_deseado
+    ADD CONSTRAINT horario_deseado_carga_horaria_id_fkey FOREIGN KEY (carga_horaria_id) REFERENCES public.carga_horaria(carga_horaria_id) ON DELETE CASCADE;
+
+
+--
 -- Name: horario_detalle horario_detalle_docente_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1400,5 +1553,5 @@ ALTER TABLE ONLY public.usuario
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 2xWtIpUCwnFzjk5KuyxlbwyYiVWqsEIAf3H4wIstYMvoSoELXkmlIJZSGIf9WGj
+\unrestrict x0T1PTNZbg4OECRihqCHDgYZHsTSj54PKqGkBffk7A2f9V8bH7pJ5TOD36Drkhm
 

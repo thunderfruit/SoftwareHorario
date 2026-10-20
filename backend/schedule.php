@@ -19,6 +19,12 @@ function currentPeriod(PDO $pdo): ?array
                         LIMIT 1')->fetch() ?: null;
 }
 
+// ORDER BY expression that sorts a day column Monday to Saturday instead of alphabetically.
+function dayOrder(string $column): string
+{
+    return "array_position(ARRAY['" . implode("','", DAYS) . "']::varchar[], $column)";
+}
+
 function listPeriods(PDO $pdo): array
 {
     return $pdo->query('SELECT * FROM public.periodo ORDER BY fecha_inicio DESC')->fetchAll();
@@ -41,21 +47,52 @@ function planCourses(PDO $pdo, int $schoolId): array
     return $stmt->fetchAll();
 }
 
+function listCampuses(PDO $pdo): array
+{
+    return $pdo->query('SELECT * FROM public.sede ORDER BY sede_id')->fetchAll();
+}
+
+// Every school with its faculty and campus, for the university structure.
+function listSchoolsByCampus(PDO $pdo): array
+{
+    return $pdo->query('SELECT se.sede_id, se.nombre AS sede, f.facultad_id, f.nombre AS facultad, e.escuela_id, e.nombre AS escuela
+                        FROM public.escuela e
+                        JOIN public.facultad f USING (facultad_id)
+                        JOIN public.sede se USING (sede_id)
+                        ORDER BY se.sede_id, f.nombre, e.nombre')->fetchAll();
+}
+
 function listRoomTypes(PDO $pdo): array
 {
     return $pdo->query('SELECT * FROM public.categoria_salon ORDER BY nombre')->fetchAll();
 }
 
-function listRooms(PDO $pdo, ?int $roomTypeId = null): array
+/**
+ * Rooms ordered by campus, type and name.
+ * Optional filters: categoria_salon_id, sede_id, escuela_id, salon_id and nombre (case-insensitive partial match).
+ */
+function listRooms(PDO $pdo, array $filters = []): array
 {
+    $where = [];
+    $params = [];
+    foreach (['categoria_salon_id', 'sede_id', 'escuela_id', 'salon_id'] as $key) {
+        if (isset($filters[$key])) {
+            $where[] = "s.$key = :$key";
+            $params[$key] = $filters[$key];
+        }
+    }
+    if (($filters['nombre'] ?? '') !== '') {
+        $where[] = 's.nombre ILIKE :nombre';
+        $params['nombre'] = likePattern($filters['nombre']);
+    }
     $stmt = $pdo->prepare('SELECT s.*, cs.nombre AS categoria, e.nombre AS escuela, se.nombre AS sede
                            FROM public.salon s
                            JOIN public.categoria_salon cs USING (categoria_salon_id)
-                           JOIN public.escuela e USING (escuela_id)
-                           JOIN public.sede se USING (sede_id)
-                           WHERE CAST(:type AS integer) IS NULL OR s.categoria_salon_id = :type
-                           ORDER BY s.nombre');
-    $stmt->execute(['type' => $roomTypeId]);
+                           JOIN public.escuela e ON e.escuela_id = s.escuela_id
+                           JOIN public.sede se ON se.sede_id = s.sede_id'
+        . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
+        . ' ORDER BY s.sede_id, cs.nombre, s.nombre');
+    $stmt->execute($params);
     return $stmt->fetchAll();
 }
 
@@ -72,7 +109,7 @@ function deleteRoom(PDO $pdo, int $roomId): void
 
 function listSections(PDO $pdo, int $periodId, int $schoolId): array
 {
-    $stmt = $pdo->prepare('SELECT s.*, c.codigo, c.nombre AS curso, ec.ciclo,
+    $stmt = $pdo->prepare('SELECT s.*, c.codigo, c.nombre AS curso, ec.ciclo, c.horas_teoria, c.horas_practica, c.horas_laboratorio,
                                   (SELECT count(*) FROM public.horario_detalle h WHERE h.seccion_id = s.seccion_id) AS bloques
                            FROM public.seccion s
                            JOIN public.curso c USING (curso_id)
@@ -126,7 +163,7 @@ function deleteSection(PDO $pdo, int $sectionId): void
 
 /**
  * Schedule blocks with everything needed to display them.
- * Filters (all optional except periodo_id): escuela_id, ciclo, salon_id, categoria_salon_id, docente_id, seccion_id.
+ * Filters (all optional except periodo_id): escuela_id, ciclo, salon_id, categoria_salon_id, sede_id, docente_id, seccion_id.
  */
 function scheduleBlocks(PDO $pdo, array $filters): array
 {
@@ -134,7 +171,8 @@ function scheduleBlocks(PDO $pdo, array $filters): array
     $params = ['periodo_id' => $filters['periodo_id']];
     $columns = [
         'escuela_id' => 's.escuela_id', 'ciclo' => 'ec.ciclo', 'salon_id' => 'h.salon_id',
-        'categoria_salon_id' => 'sa.categoria_salon_id', 'docente_id' => 'h.docente_id', 'seccion_id' => 'h.seccion_id',
+        'categoria_salon_id' => 'sa.categoria_salon_id', 'sede_id' => 'sa.sede_id', 'docente_id' => 'h.docente_id',
+        'seccion_id' => 'h.seccion_id',
     ];
     foreach ($columns as $key => $column) {
         if (isset($filters[$key])) {
@@ -144,17 +182,18 @@ function scheduleBlocks(PDO $pdo, array $filters): array
     }
 
     $stmt = $pdo->prepare('
-        SELECT h.*, s.letra, s.extraordinaria, c.codigo, c.nombre AS curso, ec.ciclo,
+        SELECT h.*, s.letra, s.extraordinaria, s.escuela_id, e.nombre AS escuela, c.curso_id, c.codigo, c.nombre AS curso, ec.ciclo,
                d.apellidos || \', \' || d.nombres AS docente, sa.nombre AS salon, cs.nombre AS categoria_salon
         FROM public.horario_detalle h
         JOIN public.seccion s USING (seccion_id)
+        JOIN public.escuela e ON e.escuela_id = s.escuela_id
         JOIN public.curso c ON c.curso_id = s.curso_id
         JOIN public.escuela_curso ec ON ec.escuela_id = s.escuela_id AND ec.curso_id = s.curso_id
         JOIN public.docente d ON d.docente_id = h.docente_id
         JOIN public.salon sa ON sa.salon_id = h.salon_id
         JOIN public.categoria_salon cs ON cs.categoria_salon_id = sa.categoria_salon_id
         WHERE ' . implode(' AND ', $where) . '
-        ORDER BY array_position(ARRAY[\'' . implode("','", DAYS) . '\']::varchar[], h.dia_semana), h.hora_inicio');
+        ORDER BY ' . dayOrder('h.dia_semana') . ', h.hora_inicio');
     $stmt->execute($params);
     return $stmt->fetchAll();
 }

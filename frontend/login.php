@@ -19,6 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 pageHeader('Ingresar');
 ?>
+<div class="login">
+<div class="login-brand">
+    <img src="<?= e(url('img/logo-unt.png')) ?>" alt="Universidad Nacional de Trujillo" width="207" height="110">
+</div>
 <form class="card narrow" method="post">
     <?= csrfField() ?>
     <label>Usuario
@@ -29,5 +33,6 @@ pageHeader('Ingresar');
     </label>
     <button type="submit">Ingresar</button>
 </form>
+</div>
 <p class="hint">El horario por escuela y por salón es público; el ingreso es para administradores y docentes.</p>
 <?php pageFooter(); ?>
