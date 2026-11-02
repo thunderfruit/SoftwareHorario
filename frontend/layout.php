@@ -109,6 +109,7 @@ function pageHeader(string $title, ?callable $aside = null): void
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Lato:wght@400;700&display=swap">
     <link rel="stylesheet" href="<?= e(url('styles.css')) ?>">
+    <script>try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
 </head>
 <body>
 <header class="topbar">
@@ -123,6 +124,14 @@ function pageHeader(string $title, ?callable $aside = null): void
         <?php foreach ($links as [$href, $label]): ?>
             <a href="<?= e(url($href)) ?>"<?= $href === currentPage() ? ' aria-current="page"' : '' ?>><?= e($label) ?></a>
         <?php endforeach; ?>
+        <button type="button" class="theme-toggle no-print" aria-label="Cambiar entre modo claro y oscuro" title="Cambiar tema" onclick="
+            const now = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            const next = now === 'dark' ? 'light' : 'dark';
+            document.documentElement.dataset.theme = next;
+            try { localStorage.setItem('theme', next); } catch (e) {}">
+            <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
+            <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        </button>
         <?php if ($user): ?>
             <form method="post" action="<?= e(url('logout.php')) ?>" class="inline">
                 <?= csrfField() ?>

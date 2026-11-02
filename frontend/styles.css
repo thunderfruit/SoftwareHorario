@@ -11,7 +11,6 @@
     --unt-red: #D8261A;
     --unt-black: #1E1A17;
     --bg: #F3F5F9;
-    --grid-line: rgba(18, 55, 123, .05);
     --surface: #fff;
     --surface-alt: #F8F9FC;
     --row-head: #EBEFF6;
@@ -29,12 +28,31 @@
     --font-body: "Lato", "Segoe UI", Arial, sans-serif;
 }
 
-/* Dark mode follows the system setting; print always stays light. Blue text is lightened for contrast on dark surfaces. */
+/* Dark mode follows the system setting unless the toggle in the header chose one (data-theme on <html>); print always stays light.
+   Blue text is lightened for contrast on dark surfaces. */
 @media screen and (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
         color-scheme: dark;
         --bg: #0F1420;
-        --grid-line: rgba(143, 176, 238, .045);
+        --surface: #182030;
+        --surface-alt: #1C2536;
+        --row-head: #212B3E;
+        --text: #E3E6EC;
+        --accent-text: #9DBAF0;
+        --muted: #A3AAB5;
+        --line: #2C3749;
+        --input-border: #4A5568;
+        --error-text: #FF9B90;
+        --teoria-bg: #1B2A47;
+        --teoria-border: #6A92DC;
+        --practica-bg: #15321F;
+        --lab-bg: #3A3015;
+    }
+}
+@media screen {
+    :root[data-theme="dark"] {
+        color-scheme: dark;
+        --bg: #0F1420;
         --surface: #182030;
         --surface-alt: #1C2536;
         --row-head: #212B3E;
@@ -52,11 +70,8 @@
 }
 
 * { box-sizing: border-box; }
-/* faint hour-grid paper behind everything, echoing the timetable itself */
 body { margin: 0; font-family: var(--font-body); color: var(--text); line-height: 1.45; min-height: 100vh; display: flex; flex-direction: column;
-    background-color: var(--bg);
-    background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-    background-size: 48px 48px; background-position: -1px -1px; }
+    background-color: var(--bg); }
 main { width: 100%; max-width: 1280px; margin: 0 auto; padding: 8px 16px 56px; flex: 1; }
 a { color: var(--accent-text); }
 
@@ -77,6 +92,18 @@ h2 { font-family: var(--font-title); font-weight: 700; font-size: 1.25rem; color
 .topbar nav a:hover, .topbar nav .link:hover { text-decoration: underline; text-underline-offset: 4px; }
 .topbar nav a[aria-current="page"] { font-weight: 700; box-shadow: inset 0 -3px 0 var(--unt-gold); }
 .topbar button.link { color: #fff; text-decoration: none; }
+/* icon-only theme switch: moon while light, sun while dark, drawn with the nav's own white */
+.topbar .theme-toggle { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%;
+    background: transparent; color: #fff; }
+.topbar .theme-toggle:hover { background: rgba(255, 255, 255, .16); }
+.theme-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.theme-toggle .icon-sun { display: none; }
+:root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+:root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-toggle .icon-moon { display: none; }
+    :root:not([data-theme="light"]) .theme-toggle .icon-sun { display: block; }
+}
 
 .sweep { display: block; width: 100%; height: clamp(28px, 4vw, 56px); margin-bottom: 8px; }
 .sweep-fill { fill: var(--unt-blue); }
@@ -111,6 +138,7 @@ button, .button { padding: 8px 16px; border: 2px solid var(--unt-blue); border-r
 button:hover, .button:hover { background: var(--unt-blue-dark); border-color: var(--unt-blue-dark); }
 .button.secondary { background: transparent; color: var(--accent-text); border-color: currentColor; }
 .button.secondary:hover { background: var(--row-head); }
+.tools .button.secondary { border-width: 1px; padding: 5px 12px; font-size: .9rem; }
 .button.accent { background: var(--unt-gold); border-color: var(--unt-gold); color: var(--unt-black); }
 .button.accent:hover { background: #CF9B08; border-color: #CF9B08; }
 button.link { background: none; border: none; padding: 0; font-weight: 400; color: var(--accent-text); text-decoration: underline; }
