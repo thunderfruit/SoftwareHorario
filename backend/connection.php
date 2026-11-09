@@ -3,14 +3,19 @@
 if (PHP_SAPI !== 'cli') {
     ini_set('display_errors', '0');
 }
-$env = @parse_ini_file(dirname(__DIR__) . '/.env', false, INI_SCANNER_RAW);
-if ($env === false) {
-    http_response_code(500);
-    exit('Falta el archivo .env (copia .env.example)');
+// Render (production) sets real environment variables; locally they come from .env
+$env = array_filter(array_map('getenv', array_combine(
+    $k = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASS', 'DB_SSLMODE'], $k)), fn($v) => $v !== false);
+if (!isset($env['DB_HOST'])) {
+    $env = @parse_ini_file(dirname(__DIR__) . '/.env', false, INI_SCANNER_RAW);
+    if ($env === false) {
+        http_response_code(500);
+        exit('Falta el archivo .env (copia .env.example)');
+    }
 }
 
 try {
-    $pdo = new PDO("pgsql:host={$env['DB_HOST']};port={$env['DB_PORT']};dbname={$env['DB_NAME']}", $env['DB_USER'], $env['DB_PASS'], [
+    $pdo = new PDO("pgsql:host={$env['DB_HOST']};port={$env['DB_PORT']};dbname={$env['DB_NAME']};sslmode=" . ($env['DB_SSLMODE'] ?? 'prefer'), $env['DB_USER'], $env['DB_PASS'], [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);

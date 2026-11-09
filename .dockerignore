@@ -1,0 +1,5 @@
+.env
+.git
+database
+tests
+.playwright-mcp
